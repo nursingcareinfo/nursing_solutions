@@ -77,13 +77,13 @@ export default function StaffList() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cat-overlay0" />
           <input 
             type="text" 
             placeholder="Search by name, category or area..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-cat-mantle border border-cat-surface0 rounded-2xl text-sm focus:ring-2 focus:ring-cat-blue transition-all outline-none text-cat-text"
           />
         </div>
         
@@ -91,7 +91,7 @@ export default function StaffList() {
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+            className="px-4 py-2.5 bg-cat-mantle border border-cat-surface0 rounded-xl text-sm font-bold text-cat-subtext0 outline-none focus:ring-2 focus:ring-cat-blue transition-all"
           >
             <option value="All">All Status</option>
             <option value="Available">Available</option>
@@ -101,7 +101,7 @@ export default function StaffList() {
           </select>
           <button 
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-cat-blue text-cat-base rounded-xl text-sm font-bold hover:bg-cat-lavender transition-all shadow-lg shadow-cat-blue/20 uppercase tracking-widest"
           >
             <Download className="w-4 h-4" />
             Export Data
@@ -109,92 +109,93 @@ export default function StaffList() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-cat-mantle rounded-3xl border border-cat-surface0 shadow-xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-100">
+            <thead className="bg-cat-crust border-b border-cat-surface0">
               <tr>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Staff Details</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Rating</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Verification</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider"></th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Staff Details</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Category</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Location</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Rating</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest">Verification</th>
+                <th className="px-6 py-5 text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-cat-surface0">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-                    Loading staff records...
+                  <td colSpan={7} className="px-6 py-16 text-center text-cat-overlay0">
+                    <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-cat-blue" />
+                    <p className="font-bold text-cat-subtext0 uppercase tracking-widest">Loading Records...</p>
                   </td>
                 </tr>
               ) : filteredStaff.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
-                    No staff found matching your search.
+                  <td colSpan={7} className="px-6 py-16 text-center text-cat-overlay0">
+                    <Zap className="w-10 h-10 mx-auto mb-4 opacity-20" />
+                    No staff records found.
                   </td>
                 </tr>
               ) : (
                 filteredStaff.map((person) => (
-                  <tr key={person.id} className="hover:bg-slate-50 transition-all group">
+                  <tr key={person.id} className="hover:bg-cat-surface0/50 transition-all group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500 uppercase text-sm">
+                        <div className="w-11 h-11 rounded-2xl bg-cat-blue/10 flex items-center justify-center font-bold text-cat-blue uppercase text-sm shadow-sm border border-cat-blue/10">
                           {person.full_name[0]}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-900 leading-none mb-1">{person.full_name}</p>
-                          <p className="text-xs text-slate-500">{person.phone_primary}</p>
+                          <p className="font-bold text-cat-text tracking-tight">{person.full_name}</p>
+                          <p className="text-xs text-cat-blue font-mono mt-0.5">{person.phone_primary}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-medium px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700">
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-cat-lavender/10 text-cat-lavender uppercase tracking-widest">
                         {person.category}
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-sm text-slate-600 font-medium">{person.area_town}</p>
+                      <p className="text-sm text-cat-subtext1 font-bold tracking-tight">{person.area_town}</p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
                         <Circle className={cn(
                           "w-2 h-2 fill-current", 
-                          person.status === 'Available' ? "text-green-500" : 
-                          person.status === 'On Duty' ? "text-blue-500" :
-                          person.status === 'On Leave' ? "text-amber-500" :
-                          "text-slate-400"
+                          person.status === 'Available' ? "text-cat-green" : 
+                          person.status === 'On Duty' ? "text-cat-blue" :
+                          person.status === 'On Leave' ? "text-cat-yellow" :
+                          "text-cat-overlay0"
                         )} />
-                        <span className="text-sm font-medium">
+                        <span className="text-sm font-bold text-cat-text">
                           {person.status}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 text-amber-500 fill-current" />
-                        <span className="text-sm font-bold text-slate-700">{person.rating || 'N/A'}</span>
+                        <Star className="w-3.5 h-3.5 text-cat-yellow fill-current" />
+                        <span className="text-sm font-bold text-cat-text">{person.rating || 'N/A'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       {person.is_verified ? (
-                        <div className="flex items-center gap-1.5 text-green-600">
+                        <div className="flex items-center gap-1.5 text-cat-green">
                           <CheckCircle2 className="w-4 h-4" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Verified</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Verified</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-slate-400">
+                        <div className="flex items-center gap-1.5 text-cat-overlay1">
                           <AlertCircle className="w-4 h-4" />
-                          <span className="text-xs font-bold uppercase tracking-wider">Pending</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Pending</span>
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="p-2 opacity-0 group-hover:opacity-100 bg-white border border-slate-100 rounded-lg shadow-sm hover:bg-slate-50 transition-all">
-                        <MoreVertical className="w-4 h-4 text-slate-400" />
+                      <button className="p-2 opacity-0 group-hover:opacity-100 bg-cat-mantle border border-cat-surface0 rounded-xl shadow-sm hover:bg-cat-surface0 transition-all text-cat-blue">
+                        <MoreVertical className="w-4 h-4" />
                       </button>
                     </td>
                   </tr>

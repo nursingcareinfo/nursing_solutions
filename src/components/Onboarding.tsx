@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { 
   Upload, 
@@ -12,7 +12,8 @@ import {
   Trash2,
   RefreshCw,
   Save,
-  Plus
+  Plus,
+  Clock
 } from 'lucide-react';
 import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
 import { supabase } from '../lib/supabase';
@@ -33,6 +34,30 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
   const [extractedData, setExtractedData] = useState<ExtractedStaffData | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [recentStaff, setRecentStaff] = useState<any[]>([]);
+  const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+
+  const fetchRecentStaff = async () => {
+    setIsLoadingRecent(true);
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      setRecentStaff(data || []);
+    } catch (err) {
+      console.error('Error fetching recent staff:', err);
+    } finally {
+      setIsLoadingRecent(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRecentStaff();
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
@@ -113,6 +138,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
       if (error) throw error;
       setSaveStatus('success');
       setErrorMessage(null);
+      fetchRecentStaff(); // Refresh the table
       setTimeout(onComplete, 1500);
     } catch (error: any) {
       console.error('Save error:', error);
@@ -126,8 +152,8 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
       {!extractedData ? (
         <div className="space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold text-slate-800">Batch Staff Onboarding</h2>
-            <p className="text-slate-500">Capture or upload 2-3 images (CNIC, Form, Bill) together to extract profile information.</p>
+            <h2 className="text-2xl font-bold text-cat-text">Batch Staff Onboarding</h2>
+            <p className="text-cat-subtext0">Capture or upload 2-3 images (CNIC, Form, Bill) together to extract profile information.</p>
           </div>
 
           <div className="space-y-6">
@@ -136,21 +162,21 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               {...getRootProps()} 
               className={cn(
                 "cursor-pointer rounded-3xl border-2 border-dashed flex flex-col items-center justify-center p-12 text-center transition-all",
-                isDragActive ? "border-blue-500 bg-blue-50/50" : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
+                isDragActive ? "border-cat-blue bg-cat-blue/5" : "border-cat-surface1 bg-cat-mantle hover:border-cat-lavender hover:bg-cat-crust"
               )}
             >
               <input {...getInputProps({ capture: 'environment' } as any)} />
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600 mb-6">
+              <div className="w-16 h-16 bg-cat-lavender/20 rounded-2xl flex items-center justify-center text-cat-lavender mb-6">
                 <Upload className="w-8 h-8" />
               </div>
-              <h3 className="text-lg font-semibold text-slate-800">Add Documents</h3>
-              <p className="text-slate-400 mt-2 max-w-sm">Tap to snap photos or drag images of CNIC, Form, and Utility Bill here.</p>
+              <h3 className="text-lg font-bold text-cat-text">Add Documents</h3>
+              <p className="text-cat-overlay2 mt-2 max-w-sm">Tap to snap photos or drag images of CNIC, Form, and Utility Bill here.</p>
             </div>
 
             <div className="flex items-center gap-4">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">or</span>
-              <div className="flex-1 h-px bg-slate-200" />
+              <div className="flex-1 h-px bg-cat-surface0" />
+              <span className="text-xs font-bold text-cat-overlay0 uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-cat-surface0" />
             </div>
 
             <div className="flex justify-center">
@@ -164,9 +190,9 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
                   category: STAFF_CATEGORIES[0],
                   experience_years: 0
                 } as any)}
-                className="flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
+                className="flex items-center gap-2 px-8 py-4 bg-cat-mantle border border-cat-surface0 text-cat-text rounded-2xl font-bold text-sm hover:bg-cat-crust transition-all shadow-sm shadow-cat-text/5"
               >
-                <Plus className="w-5 h-5 text-blue-600" />
+                <Plus className="w-5 h-5 text-cat-blue" />
                 Fill Staff Form Manually
               </button>
             </div>
@@ -226,28 +252,27 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden"
+          className="bg-cat-mantle rounded-3xl border border-cat-surface0 shadow-xl overflow-hidden"
         >
-          <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
+          <div className="bg-cat-blue p-6 text-cat-base flex justify-between items-center shadow-lg shadow-cat-blue/20">
             <div>
-              <h3 className="text-xl font-bold">Review Extracted Data</h3>
-              <p className="text-blue-100 text-sm">Please verify the details before saving to database.</p>
+              <h3 className="text-xl font-bold tracking-tight">Review Extracted Data</h3>
+              <p className="text-cat-base/80 text-sm font-medium">Please verify the details before saving to database.</p>
             </div>
             <button 
               onClick={() => setExtractedData(null)}
-              className="p-2 hover:bg-white/10 rounded-full transition-all"
+              className="w-10 h-10 flex items-center justify-center hover:bg-cat-base/10 rounded-xl transition-all"
             >
               <Trash2 className="w-5 h-5" />
             </button>
           </div>
 
           {errorMessage && (
-            <div className="mx-8 mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+            <div className="mx-8 mt-4 p-4 bg-cat-red/10 border border-cat-red/20 rounded-xl flex items-start gap-3 text-cat-red animate-in fade-in slide-in-from-top-2">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-bold">Database Error</p>
-                <p className="opacity-90">{errorMessage}</p>
-                <p className="mt-2 text-xs opacity-75">Tip: Check if you have created the columns in Supabase and provided the correct API keys.</p>
+                <p className="font-bold uppercase tracking-tight">Database Error</p>
+                <p className="font-medium">{errorMessage}</p>
               </div>
             </div>
           )}
@@ -269,14 +294,20 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               onChange={(v) => setExtractedData(prev => ({ ...prev!, cnic: v }))} 
             />
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Staff Category</label>
+              <label className="text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest pl-1">Staff Category</label>
               <select 
                 value={extractedData.category}
                 onChange={(e) => setExtractedData(prev => ({ ...prev!, category: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none",
+                  (!extractedData.category || extractedData.category.toLowerCase() === 'unknown')
+                    ? "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red" 
+                    : "bg-cat-crust border-cat-surface1 text-cat-text focus:bg-cat-mantle focus:ring-2 focus:ring-cat-lavender"
+                )}
               >
                 {STAFF_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
+              {(!extractedData.category || extractedData.category.toLowerCase() === 'unknown') && <p className="text-[10px] font-bold text-cat-red uppercase tracking-tighter pl-1 mt-1">* Required</p>}
             </div>
             <DataField 
               label="Phone (03XX-XXXXXXX)" 
@@ -324,10 +355,16 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               <select 
                 value={extractedData.area_town}
                 onChange={(e) => setExtractedData(prev => ({ ...prev!, area_town: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                className={cn(
+                  "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none",
+                  (!extractedData.area_town || extractedData.area_town.toLowerCase() === 'unknown')
+                    ? "bg-red-50 border-red-200 focus:ring-2 focus:ring-red-500" 
+                    : "bg-slate-50 border-slate-100 focus:bg-white focus:ring-2 focus:ring-blue-500"
+                )}
               >
                 {KARACHI_TOWNS.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
+              {(!extractedData.area_town || extractedData.area_town.toLowerCase() === 'unknown') && <p className="text-[10px] font-bold text-red-500 uppercase tracking-tighter">* Required</p>}
             </div>
             <div className="md:col-span-2">
               <DataField 
@@ -339,17 +376,20 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             </div>
           </div>
 
-          <div className="p-6 bg-slate-50 flex justify-end gap-4 border-t border-slate-100">
+          <div className="p-6 bg-cat-mantle/50 flex justify-end gap-4 border-t border-cat-surface0">
             <button 
               onClick={() => setExtractedData(null)}
-              className="px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100"
+              className="px-6 py-2.5 rounded-xl font-bold text-sm text-cat-subtext0 hover:bg-cat-surface0 hover:text-cat-text transition-all"
             >
               Discard
             </button>
             <button 
               onClick={handleSave}
               disabled={saveStatus === 'saving'}
-              className="flex items-center gap-2 px-8 py-2.5 rounded-xl font-semibold bg-green-600 text-white hover:bg-green-700 transition-all shadow-md active:scale-95"
+              className={cn(
+                "flex items-center gap-2 px-10 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg active:scale-95",
+                saveStatus === 'success' ? "bg-cat-green text-cat-base" : "bg-cat-lavender text-cat-base hover:bg-cat-blue shadow-cat-lavender/20"
+              )}
             >
               {saveStatus === 'saving' ? (
                 <>
@@ -371,29 +411,101 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
           </div>
         </motion.div>
       )}
+
+      {/* Recently Added Staff Table */}
+      <div className="bg-cat-mantle rounded-3xl border border-cat-surface0 shadow-sm overflow-hidden mb-12">
+        <div className="p-6 border-b border-cat-surface0 flex items-center gap-3 bg-cat-crust/50">
+          <div className="w-8 h-8 rounded-lg bg-cat-lavender/20 flex items-center justify-center text-cat-lavender">
+            <Clock className="w-4 h-4" />
+          </div>
+          <h3 className="font-bold text-lg text-cat-text">Recently Registered Staff</h3>
+        </div>
+        <div className="overflow-x-auto">
+          {isLoadingRecent ? (
+            <div className="p-12 flex justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-cat-lavender" />
+            </div>
+          ) : (
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-cat-crust/30">
+                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Name & ID</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Category</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Area</th>
+                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Created</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-cat-surface0">
+                {recentStaff.length > 0 ? (
+                  recentStaff.map((staff) => (
+                    <tr key={staff.id} className="hover:bg-cat-surface0/30 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-cat-text text-sm tracking-tight">{staff.full_name}</span>
+                          <span className="text-[10px] font-mono text-cat-overlay1 uppercase">{staff.cnic}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-3 py-1 bg-cat-surface0 rounded-lg text-[10px] font-bold text-cat-subtext1 uppercase tracking-tighter">
+                          {staff.category}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-cat-subtext0 font-medium">{staff.area_town}</td>
+                      <td className="px-6 py-4 text-[10px] text-cat-overlay1 font-mono uppercase">
+                        {new Date(staff.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-12 text-center text-cat-overlay0 italic text-sm">
+                      No staff records found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function DataField({ label, value, onChange, isTextArea = false }: any) {
+function DataField({ label, value, onChange, isTextArea = false, disabled = false }: any) {
+  const isEmpty = !value || value.toString().trim() === '' || value.toString().toLowerCase() === 'unknown';
+
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">{label}</label>
+      <label className="text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest pl-1">{label}</label>
       {isTextArea ? (
         <textarea 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none resize-none"
+          className={cn(
+            "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none resize-none",
+            isEmpty 
+              ? "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red" 
+              : "bg-cat-crust border-cat-surface1 text-cat-text focus:bg-cat-mantle focus:ring-2 focus:ring-cat-lavender"
+          )}
         />
       ) : (
         <input 
           type="text" 
           value={value || ''} 
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+          disabled={disabled}
+          className={cn(
+            "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none",
+            isEmpty 
+              ? "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red" 
+              : "bg-cat-crust border-cat-surface1 text-cat-text focus:bg-cat-mantle focus:ring-2 focus:ring-cat-lavender",
+            disabled && "opacity-50 cursor-not-allowed bg-cat-mantle"
+          )}
         />
       )}
+      {isEmpty && <p className="text-[10px] font-bold text-cat-red uppercase tracking-tighter pl-1 mt-1">* Required / Missing Info</p>}
     </div>
   );
 }
