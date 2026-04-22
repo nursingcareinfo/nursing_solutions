@@ -9,9 +9,9 @@ export const KARACHI_DISTRICTS = [
 ];
 
 export const KARACHI_TOWNS = [
-  "Clifton", "Saddar", "Lyari", // South
-  "Gulshan-e-Iqbal", "Jamshed Town", "Gulistan-e-Jauhar", // East
-  "Liaquatabad", "North Nazimabad", "Gulberg", "New Karachi", // Central
+  "Clifton", "DHA", "Saddar", "Lyari", "Garden", "PECHS", // South
+  "Gulshan-e-Iqbal", "Jamshed Town", "Gulistan-e-Jauhar", "Bahria Town", // East
+  "Liaquatabad", "North Nazimabad", "Gulberg", "New Karachi", "FB Area", // Central
   "Orangi", "Baldia", "Site", "Surjani", // West
   "Korangi Town", "Landhi", "Shah Faisal", // Korangi
   "Bin Qasim", "Malir Town", "Gadap", // Malir

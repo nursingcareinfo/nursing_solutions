@@ -5,12 +5,15 @@ let supabaseInstance: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient {
   if (supabaseInstance) return supabaseInstance;
 
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'https://your-project.supabase.co') {
     throw new Error('Supabase configuration missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment secrets.');
   }
+
+  // Sanitize URL: Remove trailing slashes and common incorrect path suffixes
+  supabaseUrl = supabaseUrl.replace(/\/+$/, '').replace(/\/rest\/v1$/, '');
 
   supabaseInstance = createClient(supabaseUrl, supabaseAnonKey);
   return supabaseInstance;
@@ -29,8 +32,14 @@ export const supabase = {
 export type Staff = {
   id: string;
   full_name: string;
+  father_husband_name?: string;
   cnic: string;
+  date_of_birth?: string;
   gender: 'Male' | 'Female' | 'Other';
+  religion?: string;
+  marital_status?: string;
+  guarantor_name?: string;
+  guarantor_contact?: string;
   category: 'Nurse' | 'Attendant' | 'Caretaker' | 'Baby Sitter' | 'Doctor';
   designation: string;
   phone_primary: string;

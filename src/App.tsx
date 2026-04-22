@@ -23,6 +23,7 @@ import {
 import Dashboard from './components/Dashboard';
 import StaffOnboarding from './components/Onboarding';
 import StaffList from './components/StaffList';
+import PatientManagement from './components/PatientManagement';
 import { cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -122,12 +123,7 @@ export default function App() {
               {activeTab === 'dashboard' && <Dashboard />}
               {activeTab === 'onboarding' && <StaffOnboarding onComplete={() => setActiveTab('staff')} />}
               {activeTab === 'staff' && <StaffList />}
-              {activeTab === 'patients' && (
-                <div className="flex flex-col items-center justify-center p-20 text-slate-400">
-                  <Activity className="w-16 h-16 mb-4 opacity-20" />
-                  <p>Patient Management Module Coming Soon</p>
-                </div>
-              )}
+              {activeTab === 'patients' && <PatientManagement />}
               {activeTab === 'whatsapp' && (
                 <div className="flex flex-col items-center justify-center p-20 text-slate-400">
                   <MessageSquare className="w-16 h-16 mb-4 opacity-20" />

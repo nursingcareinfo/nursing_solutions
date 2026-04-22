@@ -9,6 +9,9 @@ export interface ExtractedStaffData {
   date_of_birth?: string;
   gender?: string;
   religion?: string;
+  marital_status?: string;
+  guarantor_name?: string;
+  guarantor_contact?: string;
   complete_address: string;
   area_town: string;
   phone_primary: string;
@@ -24,8 +27,10 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
 
   const prompt = `Extract fields from this "Nursing Care Home Medical Services" registration form:
   - full_name: The applicant's name.
-  - father_husband_name: LOOK SPECIFICALLY for the 'Father / Husband Name' field on the form.
-  - cnic (format: XXXXX-XXXXXXX-X), date_of_birth (YYYY-MM-DD), gender, religion.
+  - father_husband_name: LOOK SPECIFICALLY for the 'Father / Husband Name' field.
+  - cnic (format: XXXXX-XXXXXXX-X), date_of_birth (YYYY-MM-DD), gender, religion, marital_status.
+  - guarantor_name: Look for 'Guarantor Name' or 'Relative Name'.
+  - guarantor_contact: Format as 03XX-XXXXXXX.
   - phone_primary: Extract and format strictly as 03XX-XXXXXXX. 
   - whatsapp_number: Extract and format strictly as 03XX-XXXXXXX.
   - complete_address.
@@ -62,6 +67,9 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
           date_of_birth: { type: Type.STRING },
           gender: { type: Type.STRING },
           religion: { type: Type.STRING },
+          marital_status: { type: Type.STRING },
+          guarantor_name: { type: Type.STRING },
+          guarantor_contact: { type: Type.STRING },
           complete_address: { type: Type.STRING },
           area_town: { type: Type.STRING },
           phone_primary: { type: Type.STRING },

@@ -1,6 +1,6 @@
 {
-  "name": "Karachi Home Care Portal",
-  "description": "Comprehensive dashboard for home care staffing and patient management in Karachi, featuring AI-powered OCR for staff onboarding and real-time operational analytics.",
+  "name": "CarePoint Karachi Dashboard",
+  "description": "Production-grade dashboard for home medical services in Karachi. Manages 1,000+ staff records with AI onboarding, patient assignment tracking, and real-time area-wise analytics.",
   "requestFramePermissions": [
     "camera"
   ],

@@ -11,7 +11,8 @@ import {
   Loader2,
   Trash2,
   RefreshCw,
-  Save
+  Save,
+  Plus
 } from 'lucide-react';
 import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
 import { supabase } from '../lib/supabase';
@@ -31,6 +32,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ExtractedStaffData | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
@@ -91,6 +93,9 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
         cnic: extractedData.cnic,
         gender: extractedData.gender,
         religion: extractedData.religion,
+        marital_status: extractedData.marital_status,
+        guarantor_name: extractedData.guarantor_name,
+        guarantor_contact: extractedData.guarantor_contact,
         category: extractedData.category || 'Nurse',
         designation: extractedData.category || 'Nurse',
         phone_primary: extractedData.phone_primary,
@@ -107,10 +112,12 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
 
       if (error) throw error;
       setSaveStatus('success');
+      setErrorMessage(null);
       setTimeout(onComplete, 1500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save error:', error);
       setSaveStatus('error');
+      setErrorMessage(error.message || 'Unknown database error occurred.');
     }
   };
 
@@ -138,6 +145,30 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               </div>
               <h3 className="text-lg font-semibold text-slate-800">Add Documents</h3>
               <p className="text-slate-400 mt-2 max-w-sm">Tap to snap photos or drag images of CNIC, Form, and Utility Bill here.</p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-slate-200" />
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">or</span>
+              <div className="flex-1 h-px bg-slate-200" />
+            </div>
+
+            <div className="flex justify-center">
+              <button 
+                onClick={() => setExtractedData({
+                  full_name: '',
+                  cnic: '',
+                  complete_address: '',
+                  area_town: KARACHI_TOWNS[0],
+                  phone_primary: '',
+                  category: STAFF_CATEGORIES[0],
+                  experience_years: 0
+                } as any)}
+                className="flex items-center gap-2 px-8 py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold text-sm hover:bg-slate-50 transition-all shadow-sm"
+              >
+                <Plus className="w-5 h-5 text-blue-600" />
+                Fill Staff Form Manually
+              </button>
             </div>
 
             {/* Preview Grid */}
@@ -210,6 +241,17 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             </button>
           </div>
 
+          {errorMessage && (
+            <div className="mx-8 mt-4 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3 text-red-600 animate-in fade-in slide-in-from-top-2">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-bold">Database Error</p>
+                <p className="opacity-90">{errorMessage}</p>
+                <p className="mt-2 text-xs opacity-75">Tip: Check if you have created the columns in Supabase and provided the correct API keys.</p>
+              </div>
+            </div>
+          )}
+
           <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataField 
               label="Full Name" 
@@ -245,6 +287,26 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               label="Gender" 
               value={extractedData.gender} 
               onChange={(v) => setExtractedData(prev => ({ ...prev!, gender: v }))} 
+            />
+            <DataField 
+              label="Religion" 
+              value={extractedData.religion} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, religion: v }))} 
+            />
+            <DataField 
+              label="Marital Status" 
+              value={extractedData.marital_status} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, marital_status: v }))} 
+            />
+            <DataField 
+              label="Guarantor/Relative Name" 
+              value={extractedData.guarantor_name} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, guarantor_name: v }))} 
+            />
+            <DataField 
+              label="Guarantor Contact (03XX-XXXXXXX)" 
+              value={extractedData.guarantor_contact} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, guarantor_contact: v }))} 
             />
             <DataField 
               label="Date of Birth" 
