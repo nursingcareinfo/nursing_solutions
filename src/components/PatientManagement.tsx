@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { supabase, Patient } from '../lib/supabase';
 import { KARACHI_TOWNS } from '../constants';
-import { cn } from '../lib/utils';
+import { cn, formatPhoneNumber } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 
 const SERVICE_TYPES = ["Nursing care", "Patient Attendant", "Caretaker", "Baby Sitter", "Physiotherapy", "Doctor Visit"];
@@ -248,7 +248,7 @@ export default function PatientManagement() {
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-blue-500 transition-all outline-none"
                       placeholder="03XX-XXXXXXX"
                       value={formData.mobile_number}
-                      onChange={(e) => setFormData({...formData, mobile_number: e.target.value})}
+                      onChange={(e) => setFormData({...formData, mobile_number: formatPhoneNumber(e.target.value)})}
                     />
                   </div>
                   <div className="space-y-1.5">

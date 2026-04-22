@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
 import { supabase } from '../lib/supabase';
-import { cn } from '../lib/utils';
+import { cn, formatPhoneNumber } from '../lib/utils';
 import { KARACHI_TOWNS, STAFF_CATEGORIES } from '../constants';
 import { motion } from 'motion/react';
 
@@ -281,7 +281,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             <DataField 
               label="Phone (03XX-XXXXXXX)" 
               value={extractedData.phone_primary} 
-              onChange={(v) => setExtractedData(prev => ({ ...prev!, phone_primary: v }))} 
+              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, phone_primary: formatPhoneNumber(v) }))} 
             />
             <DataField 
               label="Gender" 
@@ -306,7 +306,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             <DataField 
               label="Guarantor Contact (03XX-XXXXXXX)" 
               value={extractedData.guarantor_contact} 
-              onChange={(v) => setExtractedData(prev => ({ ...prev!, guarantor_contact: v }))} 
+              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, guarantor_contact: formatPhoneNumber(v) }))} 
             />
             <DataField 
               label="Date of Birth" 
