@@ -39,8 +39,7 @@ export type Staff = {
   complete_address: string;
   rating: number;
   experience_years: number;
-  is_available: boolean;
-  is_active: boolean;
+  status: 'Available' | 'On Duty' | 'On Leave' | 'Inactive';
   is_verified: boolean;
   created_at: string;
   updated_at: string;

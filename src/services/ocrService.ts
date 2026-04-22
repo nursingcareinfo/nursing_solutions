@@ -23,7 +23,9 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
   const model = "gemini-3-flash-preview";
 
   const prompt = `Extract fields from this "Nursing Care Home Medical Services" registration form:
-  - full_name, father_husband_name, cnic (XXXXX-XXXXXXX-X), date_of_birth (YYYY-MM-DD), gender, religion.
+  - full_name: The applicant's name.
+  - father_husband_name: LOOK SPECIFICALLY for the 'Father / Husband Name' field on the form.
+  - cnic (format: XXXXX-XXXXXXX-X), date_of_birth (YYYY-MM-DD), gender, religion.
   - phone_primary: Extract and format strictly as 03XX-XXXXXXX. 
   - whatsapp_number: Extract and format strictly as 03XX-XXXXXXX.
   - complete_address.
@@ -32,7 +34,7 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
   - experience_years (Total Experience), expected_salary (Numerical), shift_preference (Day/Night/24hrs).
   
   Note: If age is mentioned instead of DOB, estimate year of birth (2026 - Age).
-  Return ONLY a valid JSON object. Valid Karachi areas: [Clifton, Saddar, Gulshan, Malir, Korangi, Nazimabad, Orangi, etc].`;
+  Return ONLY a valid JSON object.`;
 
   const imageParts = images.map(img => ({
     inlineData: {
@@ -55,14 +57,19 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
         type: Type.OBJECT,
         properties: {
           full_name: { type: Type.STRING },
+          father_husband_name: { type: Type.STRING },
           cnic: { type: Type.STRING },
           date_of_birth: { type: Type.STRING },
           gender: { type: Type.STRING },
+          religion: { type: Type.STRING },
           complete_address: { type: Type.STRING },
           area_town: { type: Type.STRING },
           phone_primary: { type: Type.STRING },
+          whatsapp_number: { type: Type.STRING },
           category: { type: Type.STRING },
           experience_years: { type: Type.NUMBER },
+          expected_salary: { type: Type.NUMBER },
+          shift_preference: { type: Type.STRING },
         },
         required: ["full_name", "cnic", "complete_address"]
       }

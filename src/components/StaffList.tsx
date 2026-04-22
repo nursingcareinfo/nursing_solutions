@@ -18,6 +18,15 @@ export default function StaffList() {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  const filteredStaff = staff.filter(person => {
+    const matchesSearch = person.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         person.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         person.area_town?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === 'All' || person.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   useEffect(() => {
     fetchStaff();
@@ -37,22 +46,16 @@ export default function StaffList() {
       console.error('Fetch error:', error);
       // Fallback to sample data for demo
       const sample: Partial<Staff>[] = [
-        { id: '1', full_name: 'Ahmed Khan', category: 'Nurse', area_town: 'Gulshan', rating: 4.8, is_available: true, is_verified: true, phone_primary: '+923001234567', created_at: new Date().toISOString() },
-        { id: '2', full_name: 'Sara Malik', category: 'Caretaker', area_town: 'Clifton', rating: 4.5, is_available: false, is_verified: true, phone_primary: '+923117654321', created_at: new Date().toISOString() },
-        { id: '3', full_name: 'Mohammad Ali', category: 'Doctor', area_town: 'DHA', rating: 5.0, is_available: true, is_verified: true, phone_primary: '+923229876543', created_at: new Date().toISOString() },
-        { id: '4', full_name: 'Fatima Siddiqui', category: 'Attendant', area_town: 'Malir', rating: 4.2, is_available: true, is_verified: false, phone_primary: '+923334567890', created_at: new Date().toISOString() },
+        { id: '1', full_name: 'Ahmed Khan', category: 'Nurse', area_town: 'Gulshan', rating: 4.8, status: 'Available', is_verified: true, phone_primary: '+923001234567', created_at: new Date().toISOString() },
+        { id: '2', full_name: 'Sara Malik', category: 'Caretaker', area_town: 'Clifton', rating: 4.5, status: 'On Duty', is_verified: true, phone_primary: '+923117654321', created_at: new Date().toISOString() },
+        { id: '3', full_name: 'Mohammad Ali', category: 'Doctor', area_town: 'DHA', rating: 5.0, status: 'On Leave', is_verified: true, phone_primary: '+923229876543', created_at: new Date().toISOString() },
+        { id: '4', full_name: 'Fatima Siddiqui', category: 'Attendant', area_town: 'Malir', rating: 4.2, status: 'Inactive', is_verified: false, phone_primary: '+923334567890', created_at: new Date().toISOString() },
       ];
       setStaff(sample as Staff[]);
     } finally {
       setLoading(false);
     }
   };
-
-  const filteredStaff = staff.filter(s => 
-    s.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.area_town.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   const exportToCSV = () => {
     const headers = ['Name', 'Category', 'Area', 'Phone', 'Rating', 'Status'];
@@ -62,7 +65,7 @@ export default function StaffList() {
       s.area_town,
       s.phone_primary,
       s.rating,
-      s.is_available ? 'Available' : 'Assigned'
+      s.status
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -92,10 +95,17 @@ export default function StaffList() {
         </div>
         
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-all">
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+          >
+            <option value="All">All Status</option>
+            <option value="Available">Available</option>
+            <option value="On Duty">On Duty</option>
+            <option value="On Leave">On Leave</option>
+            <option value="Inactive">Inactive</option>
+          </select>
           <button 
             onClick={exportToCSV}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition-all"
@@ -158,9 +168,15 @@ export default function StaffList() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
-                        <Circle className={cn("w-2 h-2 fill-current", person.is_available ? "text-green-500" : "text-amber-500")} />
+                        <Circle className={cn(
+                          "w-2 h-2 fill-current", 
+                          person.status === 'Available' ? "text-green-500" : 
+                          person.status === 'On Duty' ? "text-blue-500" :
+                          person.status === 'On Leave' ? "text-amber-500" :
+                          "text-slate-400"
+                        )} />
                         <span className="text-sm font-medium">
-                          {person.is_available ? 'Available' : 'On Shift'}
+                          {person.status}
                         </span>
                       </div>
                     </td>

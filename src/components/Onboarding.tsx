@@ -87,16 +87,21 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     try {
       const { error } = await supabase.from('staff').insert([{
         full_name: extractedData.full_name,
+        father_husband_name: extractedData.father_husband_name,
         cnic: extractedData.cnic,
         gender: extractedData.gender,
+        religion: extractedData.religion,
         category: extractedData.category || 'Nurse',
         designation: extractedData.category || 'Nurse',
         phone_primary: extractedData.phone_primary,
+        whatsapp_number: extractedData.whatsapp_number,
         complete_address: extractedData.complete_address,
         area_town: (extractedData as any).area_town || 'Unknown',
         experience_years: extractedData.experience_years || 0,
-        is_active: true,
-        is_available: true,
+        expected_salary: extractedData.expected_salary,
+        shift_preference: extractedData.shift_preference,
+        status: 'Available',
+        is_verified: false,
         rating: 5.0
       }]);
 
@@ -212,8 +217,8 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               onChange={(v) => setExtractedData(prev => ({ ...prev!, full_name: v }))} 
             />
             <DataField 
-              label="Father/Husband Name" 
-              value={(extractedData as any).father_husband_name} 
+              label="Father / Husband Name" 
+              value={extractedData.father_husband_name || ''} 
               onChange={(v) => setExtractedData(prev => ({ ...prev!, father_husband_name: v }))} 
             />
             <DataField 
