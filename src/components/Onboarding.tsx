@@ -232,9 +232,25 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               </select>
             </div>
             <DataField 
-              label="Phone" 
+              label="Phone (03XX-XXXXXXX)" 
               value={extractedData.phone_primary} 
               onChange={(v) => setExtractedData(prev => ({ ...prev!, phone_primary: v }))} 
+            />
+            <DataField 
+              label="Gender" 
+              value={extractedData.gender} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, gender: v }))} 
+            />
+            <DataField 
+              label="Date of Birth" 
+              value={extractedData.date_of_birth} 
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, date_of_birth: v }))} 
+            />
+            <DataField 
+              label="Age" 
+              value={extractedData.date_of_birth ? (new Date().getFullYear() - new Date(extractedData.date_of_birth).getFullYear()).toString() : ''} 
+              onChange={() => {}} 
+              disabled
             />
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Karachi Area/Town</label>

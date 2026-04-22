@@ -24,11 +24,14 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
 
   const prompt = `Extract fields from this "Nursing Care Home Medical Services" registration form:
   - full_name, father_husband_name, cnic (XXXXX-XXXXXXX-X), date_of_birth (YYYY-MM-DD), gender, religion.
-  - phone_primary (Mobile Number), whatsapp_number, complete_address.
+  - phone_primary: Extract and format strictly as 03XX-XXXXXXX. 
+  - whatsapp_number: Extract and format strictly as 03XX-XXXXXXX.
+  - complete_address.
   - area_town: Identify specific Karachi area (e.g. Korangi, Gulshan, Malir, DHA, Clifton).
   - category: Choose one from [R/N, BSN, Aid Nurse, Midwife, DPT, ICU/Anes, Doctor, Attendant, Babysitter].
   - experience_years (Total Experience), expected_salary (Numerical), shift_preference (Day/Night/24hrs).
   
+  Note: If age is mentioned instead of DOB, estimate year of birth (2026 - Age).
   Return ONLY a valid JSON object. Valid Karachi areas: [Clifton, Saddar, Gulshan, Malir, Korangi, Nazimabad, Orangi, etc].`;
 
   const imageParts = images.map(img => ({
