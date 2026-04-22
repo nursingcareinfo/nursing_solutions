@@ -20,6 +20,7 @@ export function getSupabase(): SupabaseClient {
 // but we will update them to use getSupabase() for safety.
 export const supabase = {
   from: (table: string) => getSupabase().from(table),
+  rpc: (fn: string, params?: any) => getSupabase().rpc(fn, params),
   auth: {
     getUser: () => getSupabase().auth.getUser(),
   }
