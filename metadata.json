@@ -1,0 +1,13 @@
+{
+  "name": "Karachi Home Care Portal",
+  "description": "Comprehensive dashboard for home care staffing and patient management in Karachi, featuring AI-powered OCR for staff onboarding and real-time operational analytics.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "OCR",
+    "Data Visualization",
+    "Staff Management",
+    "Patient Management"
+  ]
+}
