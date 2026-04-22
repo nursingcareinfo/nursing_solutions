@@ -24,6 +24,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
@@ -38,13 +39,24 @@ export default function Dashboard() {
   const [areaData, setAreaData] = useState<any[]>([]);
   const [dataIssues, setDataIssues] = useState<{ staff: number; patients: number }>({ staff: 0, patients: 0 });
   const [recentStaff, setRecentStaff] = useState<any[]>([]);
-
+  const [aiQuota, setAiQuota] = useState({ used: 0, total: 1500 });
+  
   useEffect(() => {
     async function fetchDashboardStats() {
       // 1. Total Staff
       const { count: totalStaff } = await supabase
         .from('staff')
         .select('*', { count: 'exact', head: true });
+
+      // AI Quota Calculation
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const { count: aiUsed } = await supabase
+        .from('staff')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', today.toISOString());
+      
+      setAiQuota({ used: aiUsed || 0, total: 1500 });
 
       // Check for data issues in staff
       const { count: badStaff } = await supabase
@@ -102,6 +114,37 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {/* AI Quota Indicator */}
+      <div className="bg-slate-900 text-white p-6 rounded-3xl overflow-hidden relative group">
+        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+          <Zap className="w-32 h-32" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-blue-400">
+              <Zap className="w-4 h-4 fill-current" />
+              <span className="text-xs font-bold uppercase tracking-widest">Gemini 1.5 Flash Quota</span>
+            </div>
+            <h3 className="text-2xl font-bold">Remaining Daily Extractions</h3>
+            <p className="text-slate-400 text-sm">You have used {aiQuota.used} out of your {aiQuota.total} free daily OCR extractions.</p>
+          </div>
+          
+          <div className="flex-1 max-w-md w-full space-y-3">
+            <div className="flex justify-between text-sm mb-1">
+              <span className="font-medium text-slate-300">{Math.round(((aiQuota.total - aiQuota.used) / aiQuota.total) * 100)}% Available</span>
+              <span className="text-slate-500">{aiQuota.total - aiQuota.used} left</span>
+            </div>
+            <div className="h-3 bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${((aiQuota.total - aiQuota.used) / aiQuota.total) * 100}%` }}
+                className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Date Health Alert */}
       {(dataIssues.staff > 0 || dataIssues.patients > 0) && (
         <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-start gap-4">
