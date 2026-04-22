@@ -44,14 +44,7 @@ export default function StaffList() {
       setStaff(data || []);
     } catch (error) {
       console.error('Fetch error:', error);
-      // Fallback to sample data for demo
-      const sample: Partial<Staff>[] = [
-        { id: '1', full_name: 'Ahmed Khan', category: 'Nurse', area_town: 'Gulshan', rating: 4.8, status: 'Available', is_verified: true, phone_primary: '+923001234567', created_at: new Date().toISOString() },
-        { id: '2', full_name: 'Sara Malik', category: 'Caretaker', area_town: 'Clifton', rating: 4.5, status: 'On Duty', is_verified: true, phone_primary: '+923117654321', created_at: new Date().toISOString() },
-        { id: '3', full_name: 'Mohammad Ali', category: 'Doctor', area_town: 'DHA', rating: 5.0, status: 'On Leave', is_verified: true, phone_primary: '+923229876543', created_at: new Date().toISOString() },
-        { id: '4', full_name: 'Fatima Siddiqui', category: 'Attendant', area_town: 'Malir', rating: 4.2, status: 'Inactive', is_verified: false, phone_primary: '+923334567890', created_at: new Date().toISOString() },
-      ];
-      setStaff(sample as Staff[]);
+      setStaff([]);
     } finally {
       setLoading(false);
     }
