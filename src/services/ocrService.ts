@@ -113,3 +113,90 @@ export const extractStaffInfo = async (images: { data: string; mimeType: string 
   if (!text) throw new Error("No response from AI");
   return JSON.parse(text);
 };
+
+// Karachi areas and towns for intelligent selection
+export const KARACHI_AREAS = [
+  // Karachi District (South)
+  "Lyari", "Saddar", "Civil Line", "Garden", "Clifton", "Aram Bagh",
+
+  // Gulshan District (East)
+  "Gulshan-e-Iqbal", "Gulzar-e-Hijri", "Jamshed Quarters", "Faisal Cantonment",
+  "Gulshan Town", "Jamshed Town", "Jinnah Town", "Sohrab Goth", "Safoora Goth",
+
+  // Nazimabad District (Central)
+  "Nazimabad", "New Karachi", "Liaquatabad", "Gulberg", "North Nazimabad",
+
+  // Malir District
+  "Malir", "Gadap", "Bin Qasim", "Ibrahim Hyderi", "Murad Memon", "Shah Mureed",
+
+  // Korangi District
+  "Korangi", "Landhi", "Shah Faisal", "Model Colony",
+
+  // Orangi District (West)
+  "Orangi", "Mominabad", "Manghopir",
+
+  // Keamari District
+  "Keamari", "Baldia", "Harbour", "Mauripur", "SITE", "Moriro Mirbahar",
+
+  // Cantonments and other areas
+  "Defence Housing Authority", "DHA", "Bahria Town", "PECHS", "FB Area",
+  "Surjani", "Korangi Town", "Shah Faisal Town", "Qayyumabad", "Mehmoodabad",
+  "Orangi Town", "Surjani Town", "Korangi Town"
+];
+
+export const selectKarachiArea = async (address: string, fullName?: string, phone?: string): Promise<string> => {
+  if (!address || address.trim() === '') {
+    return 'Unknown';
+  }
+
+  const modelId = "gemini-3-flash-preview";
+
+  const prompt = `You are an expert on Karachi's geography and administrative divisions. Based on the provided address and optional context, determine the most appropriate Karachi town/area from this list:
+
+${KARACHI_AREAS.join(', ')}
+
+Address: "${address}"
+${fullName ? `Person: ${fullName}` : ''}
+${phone ? `Phone: ${phone}` : ''}
+
+Rules:
+1. Look for specific town names, landmarks, or neighborhood indicators in the address
+2. Consider common abbreviations (DHA = Defence Housing Authority, PECHS = Pakistan Employees Cooperative Housing Society, FB = Federal B Area)
+3. If multiple areas match, choose the most specific one
+4. If no clear match, return "Unknown"
+5. Return only the area name, no explanation
+
+Karachi's districts and their towns:
+- Karachi District (South): Lyari, Saddar, Civil Line, Garden, Clifton, Aram Bagh
+- Gulshan District (East): Gulshan-e-Iqbal, Gulzar-e-Hijri, Jamshed Quarters, Faisal Cantonment, Gulshan Town, Jamshed Town, Jinnah Town
+- Nazimabad District (Central): Nazimabad, New Karachi, Liaquatabad, Gulberg, North Nazimabad
+- Malir District: Malir, Gadap, Bin Qasim, Ibrahim Hyderi
+- Korangi District: Korangi, Landhi, Shah Faisal, Model Colony
+- Orangi District (West): Orangi, Mominabad, Manghopir
+- Keamari District: Keamari, Baldia, Harbour, Mauripur, SITE, Moriro Mirbahar`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: modelId,
+      contents: {
+        parts: [{ text: prompt }]
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            area: { type: Type.STRING }
+          },
+          required: ["area"]
+        }
+      }
+    });
+
+    const result = JSON.parse(response.text);
+    return result.area || 'Unknown';
+  } catch (error) {
+    console.error('Error selecting Karachi area:', error);
+    return 'Unknown';
+  }
+};

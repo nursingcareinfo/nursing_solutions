@@ -15,7 +15,7 @@ import {
   Plus,
   Clock
 } from 'lucide-react';
-import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
+import { extractStaffInfo, ExtractedStaffData, selectKarachiArea } from '../services/ocrService';
 import { supabase, Staff } from '../lib/supabase';
 import { cn, formatPhoneNumber } from '../lib/utils';
 import { KARACHI_TOWNS, STAFF_CATEGORIES } from '../constants';
@@ -86,9 +86,37 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     setEditForm({});
   };
 
+  const updateAreaFromAddress = async (address: string, fullName?: string, phone?: string) => {
+    if (!address || address.trim() === '') return;
+
+    try {
+      const aiSelectedArea = await selectKarachiArea(address, fullName, phone);
+      if (aiSelectedArea && aiSelectedArea !== 'Unknown') {
+        setExtractedData(prev => prev ? { ...prev, area_town: aiSelectedArea } : null);
+      }
+    } catch (error) {
+      console.error('Error updating area from address:', error);
+    }
+  };
+
   useEffect(() => {
     fetchRecentStaff();
   }, []);
+
+  // Auto-update area when address changes
+  useEffect(() => {
+    if (extractedData?.complete_address && extractedData.complete_address.length > 10) {
+      const timeoutId = setTimeout(() => {
+        updateAreaFromAddress(
+          extractedData.complete_address,
+          extractedData.full_name,
+          extractedData.phone_primary
+        );
+      }, 1000); // Debounce for 1 second
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [extractedData?.complete_address]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     acceptedFiles.forEach(file => {
@@ -129,6 +157,17 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
       }));
 
       const data = await extractStaffInfo(imageData);
+
+      // Use AI to intelligently select Karachi area based on address
+      if (data.complete_address) {
+        const aiSelectedArea = await selectKarachiArea(
+          data.complete_address,
+          data.full_name,
+          data.phone_primary
+        );
+        data.area_town = aiSelectedArea;
+      }
+
       setExtractedData(data);
     } catch (error) {
       console.error('OCR Error:', error);
