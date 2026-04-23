@@ -18,8 +18,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer, 
-  PieChart, 
-  Pie, 
+  PieChart,
+  Pie,
   Cell,
   AreaChart,
   Area
@@ -28,7 +28,14 @@ import { motion } from 'motion/react';
 import { supabase } from '../lib/supabase';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState([
+  const [stats, setStats] = useState<Array<{
+    label: string;
+    value: string;
+    trend: string;
+    type: string;
+    icon: any;
+    color: string;
+  }>>([
     { label: 'Total Active Staff', value: '0', trend: '0%', type: 'neutral', icon: Users, color: 'blue' },
     { label: 'Available Now', value: '0', trend: '0%', type: 'neutral', icon: UserCheck, color: 'green' },
     { label: 'Active Patients', value: '0', trend: '0%', type: 'neutral', icon: Activity, color: 'mauve' },
@@ -40,72 +47,108 @@ export default function Dashboard() {
   const [dataIssues, setDataIssues] = useState<{ staff: number; patients: number }>({ staff: 0, patients: 0 });
   const [recentStaff, setRecentStaff] = useState<any[]>([]);
   const [aiQuota, setAiQuota] = useState({ used: 0, total: 1500 });
-  
+
   useEffect(() => {
     async function fetchDashboardStats() {
       // 1. Total Staff
-      const { count: totalStaff } = await supabase
+      const { count: totalStaffRaw } = await supabase
         .from('staff')
         .select('*', { count: 'exact', head: true });
+      const totalStaff = Number(totalStaffRaw) || 0;
 
-      // AI Quota Calculation
+      // 2. Available Staff
+      const { count: availableStaffRaw } = await supabase
+        .from('staff')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Available');
+      const availableStaff = Number(availableStaffRaw) || 0;
+
+      // 3. Active Patients
+      const { count: activePatientsRaw } = await supabase
+        .from('patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Active');
+      const activePatients = Number(activePatientsRaw) || 0;
+
+      // 4. AI Quota (staff created today as proxy)
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count: aiUsed } = await supabase
+      const { count: aiUsedRaw } = await supabase
         .from('staff')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today.toISOString());
-      
-      setAiQuota({ used: aiUsed || 0, total: 1500 });
+      const aiUsed = Number(aiUsedRaw) || 0;
 
-      // Check for data issues in staff
-      const { count: badStaff } = await supabase
+      setAiQuota({ used: aiUsed, total: 1500 });
+
+      setStats([
+        { label: 'Total Active Staff', value: totalStaff.toLocaleString(), trend: '+0%', type: 'up' as const, icon: Users, color: 'blue' },
+        { label: 'Available Now', value: availableStaff.toLocaleString(), trend: '0%', type: 'neutral' as const, icon: UserCheck, color: 'green' },
+        { label: 'Active Patients', value: activePatients.toLocaleString(), trend: '+0%', type: 'up' as const, icon: Activity, color: 'mauve' },
+        { label: 'Fulfillment Rate', value: '0%', trend: '0%', type: 'neutral' as const, icon: Zap, color: 'peach' },
+      ]);
+
+      // 5. Data Integrity Check
+      const { count: badStaffRaw } = await supabase
         .from('staff')
         .select('*', { count: 'exact', head: true })
         .or('phone_primary.not.ilike.03%,area_town.is.null');
-
-      const { count: badPatients } = await supabase
+      const { count: badPatientsRaw } = await supabase
         .from('patients')
         .select('*', { count: 'exact', head: true })
         .or('mobile_number.not.ilike.03%,area_town.is.null');
 
-      setDataIssues({ staff: badStaff || 0, patients: badPatients || 0 });
+      setDataIssues({ staff: Number(badStaffRaw) || 0, patients: Number(badPatientsRaw) || 0 });
 
-      // 2. Available Staff
-      const { count: availableStaff } = await supabase
+      // 6. Category Distribution (client-side aggregation)
+      const { data: allStaff } = await supabase
         .from('staff')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Available');
+        .select('category');
 
-      // 3. Active Patients
-      const { count: activePatients } = await supabase
-        .from('patients')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'Active');
+      if (allStaff) {
+        const catCounts: Record<string, number> = {};
+        allStaff.forEach(s => {
+          const cat = s.category || 'Unknown';
+          catCounts[cat] = (catCounts[cat] || 0) + 1;
+        });
+        const total = allStaff.length || 1;
+        const catChartData = Object.entries(catCounts).map(([name, value]) => ({
+          name,
+          value,
+          percentage: Math.round((value / total) * 100)
+        })).sort((a, b) => b.value - a.value);
+        setCategoryData(catChartData);
+      }
 
-      setStats([
-        { label: 'Total Active Staff', value: (totalStaff || 0).toLocaleString(), trend: '+0%', type: 'up', icon: Users, color: 'blue' },
-        { label: 'Available Now', value: (availableStaff || 0).toLocaleString(), trend: '0%', type: 'neutral', icon: UserCheck, color: 'green' },
-        { label: 'Active Patients', value: (activePatients || 0).toLocaleString(), trend: '+0%', type: 'up', icon: Activity, color: 'mauve' },
-        { label: 'Fulfillment Rate', value: '0%', trend: '0%', type: 'neutral', icon: Zap, color: 'peach' },
-      ]);
+      // 7. Area Distribution (client-side aggregation)
+      const { data: allAreas } = await supabase
+        .from('staff')
+        .select('area_town')
+        .not('area_town', 'is', null)
+        .neq('area_town', '');
 
-      // 4. Category Distribution
-      const { data: catData } = await supabase.rpc('get_staff_by_category'); 
-      // Note: If RPC not defined, we'd do a group by in SQL or fetch all and group (not ideal for 1k records)
-      // For now, let's just use empty or simple fetch if RPS is missing
-      if (catData) setCategoryData(catData);
+      if (allAreas) {
+        const areaCounts: Record<string, number> = {};
+        allAreas.forEach(s => {
+          const area = s.area_town || 'Unknown';
+          areaCounts[area] = (areaCounts[area] || 0) + 1;
+        });
+        const total = allAreas.length || 1;
+        const areaChartData = Object.entries(areaCounts).map(([name, value]) => ({
+          name,
+          value,
+          percentage: Math.round((value / total) * 100)
+        })).sort((a, b) => b.value - a.value);
+        setAreaData(areaChartData);
+      }
 
-      // 5. Area Distribution
-      const { data: locData } = await supabase.rpc('get_staff_by_area');
-      if (locData) setAreaData(locData);
-
-      // 6. Recent Staff
+      // 8. Recent Staff
       const { data: staffData } = await supabase
         .from('staff')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
+
       if (staffData) setRecentStaff(staffData);
     }
 
@@ -145,7 +188,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Date Health Alert */}
+      {/* Data Health Alert */}
       {(dataIssues.staff > 0 || dataIssues.patients > 0) && (
         <div className="bg-cat-peach/10 border border-cat-peach/20 p-4 rounded-2xl flex items-start gap-4">
           <div className="p-2 bg-cat-peach/20 rounded-xl text-cat-peach">
@@ -168,18 +211,15 @@ export default function Dashboard() {
         {stats.map((stat, idx) => (
           <div key={idx} className="bg-cat-mantle p-6 rounded-3xl border border-cat-surface0 shadow-sm hover:shadow-md transition-all group">
             <div className="flex justify-between items-start mb-4">
-              <div className={`p-2.5 rounded-2xl bg-cat-${stat.color}/10 text-cat-${stat.color} group-hover:scale-110 transition-transform`}>
+              <div className={`p-2.5 rounded-2xl bg-cat-${stat.color}/20 text-cat-${stat.color}`}>
                 <stat.icon className="w-6 h-6" />
               </div>
-              <div className={`flex items-center text-xs font-bold ${
-                stat.type === 'up' ? 'text-cat-green bg-cat-green/10' : 
-                stat.type === 'down' ? 'text-cat-red bg-cat-red/10' : 
-                'text-cat-subtext0 bg-cat-surface0'
-              } px-2.5 py-1 rounded-full uppercase tracking-tighter`}>
-                {stat.type === 'up' && <ArrowUpRight className="w-3 h-3 mr-1" />}
-                {stat.type === 'down' && <ArrowDownRight className="w-3 h-3 mr-1" />}
+              <span className={`text-xs font-bold uppercase tracking-widest ${
+                stat.type === 'up' ? 'text-cat-green' : 
+                stat.type === 'down' ? 'text-cat-red' : 'text-cat-overlay0'
+              } px-2.5 py-1 rounded-full`}>
                 {stat.trend}
-              </div>
+              </span>
             </div>
             <div>
               <p className="text-xs font-bold text-cat-subtext0 uppercase tracking-widest mb-1">{stat.label}</p>
@@ -192,25 +232,29 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Staff by Category */}
         <div className="bg-cat-mantle p-6 rounded-3xl border border-cat-surface0 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-bold text-lg text-cat-text">Staff Distribution</h3>
-          </div>
+          <h3 className="font-bold text-lg text-cat-text mb-8">Staff Distribution</h3>
           <div className="h-[300px]">
             {categoryData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+              <PieChart>
                   <Pie
                     data={categoryData}
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={5}
                     dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    fill="#8884d8"
                   >
                     {categoryData.map((entry: any, index: number) => (
                       <Cell key={`cell-${index}`} fill={['#1e66f5', '#8839ef', '#179287', '#ea76cb', '#fe640b'][index % 5]} />
                     ))}
                   </Pie>
-                  <Tooltip wrapperStyle={{ outline: 'none' }} contentStyle={{ backgroundColor: '#e6e9ef', border: '1px solid #ccd0da', borderRadius: '12px', fontWeight: 'bold' }} />
+                  <Tooltip 
+                    wrapperStyle={{ outline: 'none' }} 
+                    contentStyle={{ backgroundColor: '#e6e9ef', border: '1px solid #ccd0da', borderRadius: '12px', fontWeight: 'bold' }} 
+                    formatter={(value: any, name: any) => `${name}: ${value} (${categoryData.find(d => d.name === name)?.percentage || 0}%)`}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -221,7 +265,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Geographic Distribution */}
+        {/* Area Distribution */}
         <div className="bg-cat-mantle p-6 rounded-3xl border border-cat-surface0 shadow-sm">
           <h3 className="font-bold text-lg text-cat-text mb-8">Area Distribution (Karachi)</h3>
           <div className="h-[300px]">
@@ -229,14 +273,10 @@ export default function Dashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={areaData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ccd0da" />
-                  <XAxis dataKey="area" fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#6c6f85', fontWeight: 'bold'}} />
-                  <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{fill: '#6c6f85', fontWeight: 'bold'}} />
-                  <Tooltip 
-                    wrapperStyle={{ outline: 'none' }} 
-                    contentStyle={{ backgroundColor: '#e6e9ef', border: '1px solid #ccd0da', borderRadius: '12px' }} 
-                    cursor={{ fill: '#ccd0da', opacity: 0.4 }} 
-                  />
-                  <Bar dataKey="count" fill="#1e66f5" radius={[6, 6, 0, 0]} barSize={40} />
+                  <XAxis dataKey="name" fontSize={10} tickLine={false} axisLine={false} tick={{ fill: '#6c6f85', fontWeight: 'bold' }} />
+                  <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{ fill: '#6c6f85', fontWeight: 'bold' }} />
+                  <Tooltip wrapperStyle={{ outline: 'none' }} contentStyle={{ backgroundColor: '#e6e9ef', border: '1px solid #ccd0da', borderRadius: '12px' }} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
+                  <Bar dataKey="value" fill="#1e66f5" radius={[6, 6, 0, 0]} barSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -267,7 +307,7 @@ export default function Dashboard() {
             </thead>
             <tbody className="divide-y divide-cat-surface0">
               {recentStaff.length > 0 ? (
-                recentStaff.map((staff) => (
+                recentStaff.map((staff: any) => (
                   <tr key={staff.id} className="hover:bg-cat-surface0/30 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
