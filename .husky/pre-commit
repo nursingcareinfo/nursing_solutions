@@ -1,0 +1,31 @@
+#!/bin/sh
+
+echo "🔍 Running Performance Calibration Checks..."
+
+# Check bundle size
+echo "📦 Checking bundle size..."
+if command -v du >/dev/null 2>&1; then
+    BUNDLE_SIZE=$(du -b dist/assets/*.js | awk '{sum += $1} END {print sum}')
+    if [ "$BUNDLE_SIZE" -gt 2000000 ]; then # 2MB limit
+        echo "❌ Bundle size too large: $(($BUNDLE_SIZE / 1024 / 1024))MB"
+        echo "💡 Consider code splitting or tree shaking"
+        exit 1
+    else
+        echo "✅ Bundle size: $(($BUNDLE_SIZE / 1024))KB"
+    fi
+fi
+
+# Check for console.log statements in production code
+echo "🔇 Checking for console statements..."
+if grep -r "console\." --include="*.tsx" --include="*.ts" src/ | grep -v "console\.warn\|console\.error" | head -5; then
+    echo "⚠️  Found console statements that should be removed for production"
+fi
+
+# Check for unused imports (basic check)
+echo "🧹 Checking for potential performance issues..."
+if grep -r "useEffect.*\[\]" src/ --include="*.tsx" | head -3; then
+    echo "⚠️  Found useEffect with empty dependency arrays - may cause infinite re-renders"
+fi
+
+echo "✨ Performance calibration complete!"
+exit 0

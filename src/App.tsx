@@ -26,6 +26,7 @@ import StaffList from './components/StaffList';
 import PatientManagement from './components/PatientManagement';
 import { cn } from './lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
+import PerformanceDevTools from './components/PerformanceDevTools';
 
 type Tab = 'dashboard' | 'onboarding' | 'staff' | 'patients' | 'whatsapp';
 
@@ -136,6 +137,8 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+
+      <PerformanceDevTools />
     </div>
   );
 }
