@@ -74,6 +74,20 @@ CREATE TABLE IF NOT EXISTS patients (
 ALTER TABLE staff ENABLE ROW LEVEL SECURITY;
 ALTER TABLE patients ENABLE ROW LEVEL SECURITY;
 
+-- 4.5. RLS POLICIES FOR STAFF (allowing anonymous access for development)
+-- Allow anonymous access for read operations, authenticated for write
+CREATE POLICY "Staff select" ON staff FOR SELECT USING (true);
+CREATE POLICY "Staff insert" ON staff FOR INSERT WITH CHECK (true);
+CREATE POLICY "Staff update" ON staff FOR UPDATE USING (true);
+CREATE POLICY "Staff delete" ON staff FOR DELETE USING (true);
+
+-- 4.6. RLS POLICIES FOR PATIENTS
+-- Allow anonymous access for read operations, authenticated for write
+CREATE POLICY "Patients select" ON patients FOR SELECT USING (true);
+CREATE POLICY "Patients insert" ON patients FOR INSERT WITH CHECK (true);
+CREATE POLICY "Patients update" ON patients FOR UPDATE USING (true);
+CREATE POLICY "Patients delete" ON patients FOR DELETE USING (true);
+
 -- 4. CREATE PERFORMANCE INDEXES
 CREATE INDEX IF NOT EXISTS idx_staff_category ON staff(category);
 CREATE INDEX IF NOT EXISTS idx_staff_area ON staff(area_town);

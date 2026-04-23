@@ -309,10 +309,10 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               </select>
               {(!extractedData.category || extractedData.category.toLowerCase() === 'unknown') && <p className="text-[10px] font-bold text-cat-red uppercase tracking-tighter pl-1 mt-1">* Required</p>}
             </div>
-            <DataField 
-              label="Phone (03XX-XXXXXXX)" 
-              value={extractedData.phone_primary} 
-              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, phone_primary: formatPhoneNumber(v) }))} 
+            <DataField
+              label="Phone (03XX-XXXXXXX)"
+              value={extractedData.phone_primary ? formatPhoneNumber(extractedData.phone_primary) : ''}
+              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, phone_primary: formatPhoneNumber(v) }))}
             />
             <DataField 
               label="Gender" 
@@ -329,15 +329,17 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               value={extractedData.marital_status} 
               onChange={(v) => setExtractedData(prev => ({ ...prev!, marital_status: v }))} 
             />
-            <DataField 
-              label="Guarantor/Relative Name" 
-              value={extractedData.guarantor_name} 
-              onChange={(v) => setExtractedData(prev => ({ ...prev!, guarantor_name: v }))} 
+            <DataField
+              label="Guarantor/Relative Name"
+              value={extractedData.guarantor_name}
+              onChange={(v) => setExtractedData(prev => ({ ...prev!, guarantor_name: v }))}
+              optional={true}
             />
-            <DataField 
-              label="Guarantor Contact (03XX-XXXXXXX)" 
-              value={extractedData.guarantor_contact} 
-              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, guarantor_contact: formatPhoneNumber(v) }))} 
+            <DataField
+              label="Guarantor Contact (03XX-XXXXXXX)"
+              value={extractedData.guarantor_contact ? formatPhoneNumber(extractedData.guarantor_contact) : ''}
+              onChange={(v: string) => setExtractedData(prev => ({ ...prev!, guarantor_contact: formatPhoneNumber(v) }))}
+              optional={true}
             />
             <DataField 
               label="Date of Birth" 
@@ -472,40 +474,47 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
   );
 }
 
-function DataField({ label, value, onChange, isTextArea = false, disabled = false }: any) {
+function DataField({ label, value, onChange, isTextArea = false, disabled = false, optional = false }: any) {
   const isEmpty = !value || value.toString().trim() === '' || value.toString().toLowerCase() === 'unknown';
 
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] font-bold text-cat-overlay2 uppercase tracking-widest pl-1">{label}</label>
       {isTextArea ? (
-        <textarea 
-          value={value || ''} 
+        <textarea
+          value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
           className={cn(
             "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none resize-none",
-            isEmpty 
-              ? "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red" 
+            isEmpty
+              ? optional ? "bg-cat-surface0 border-cat-surface1 text-cat-subtext0" : "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red"
               : "bg-cat-crust border-cat-surface1 text-cat-text focus:bg-cat-mantle focus:ring-2 focus:ring-cat-lavender"
           )}
         />
       ) : (
-        <input 
-          type="text" 
-          value={value || ''} 
+        <input
+          type="text"
+          value={value || ''}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
           className={cn(
             "w-full px-4 py-3 border rounded-xl text-sm transition-all outline-none",
-            isEmpty 
-              ? "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red" 
+            isEmpty
+              ? optional ? "bg-cat-surface0 border-cat-surface1 text-cat-subtext0" : "bg-cat-red/5 border-cat-red/30 text-cat-red focus:ring-2 focus:ring-cat-red"
               : "bg-cat-crust border-cat-surface1 text-cat-text focus:bg-cat-mantle focus:ring-2 focus:ring-cat-lavender",
             disabled && "opacity-50 cursor-not-allowed bg-cat-mantle"
           )}
         />
       )}
-      {isEmpty && <p className="text-[10px] font-bold text-cat-red uppercase tracking-tighter pl-1 mt-1">* Required / Missing Info</p>}
+      {isEmpty && (
+        <p className={cn(
+          "text-[10px] font-bold uppercase tracking-tighter pl-1 mt-1",
+          optional ? "text-cat-subtext0" : "text-cat-red"
+        )}>
+          {optional ? "No Record" : "* Required / Missing Info"}
+        </p>
+      )}
     </div>
   );
 }

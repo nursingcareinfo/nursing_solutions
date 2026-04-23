@@ -173,7 +173,7 @@ export default function PatientManagement() {
                 </div>
                 <div className="flex items-center gap-3 text-sm text-cat-blue font-bold font-mono tracking-tight">
                   <Phone className="w-4 h-4 text-cat-blue" />
-                  <span>{patient.mobile_number}</span>
+                  <span>{formatPhoneNumber(patient.mobile_number || '')}</span>
                 </div>
               </div>
 
