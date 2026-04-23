@@ -1,10 +1,6 @@
-import { OpenAI } from 'openai';
-
-// OpenRouter configuration - using FREE models for long usage
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+// OpenRouter configuration
+const OPENROUTER_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Model for OCR - gpt-4o-mini supports vision, available on OpenRouter
 const OCR_MODEL = 'openai/gpt-4o-mini';
@@ -113,7 +109,8 @@ CNIC: XXXXX-XXXXXXX-X. Phone: 03XX-XXXXXXX. Skip unclear fields.`;
   try {
     onProgress?.('Extracting with AI...', 1);
 
-    const response = await openai.chat.completions.create({
+    // Build the request body
+    const requestBody = {
       model: OCR_MODEL,
       messages: [
         {
@@ -121,14 +118,30 @@ CNIC: XXXXX-XXXXXXX-X. Phone: 03XX-XXXXXXX. Skip unclear fields.`;
           content: [
             { type: 'text', text: prompt },
             ...imageParts
-          ] as any  // OpenAI SDK type issue workaround
+          ]
         }
       ],
       response_format: { type: 'json_object' },
       max_tokens: 1500
+    };
+
+    const response = await fetch(`${OPENROUTER_BASE_URL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody)
     });
 
-    const text = response.choices?.[0]?.message?.content || '';
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+    }
+
+    const result = await response.json();
+
+    const text = result.choices?.[0]?.message?.content || '';
 
     if (!text) {
       throw new Error('No response from AI model');
