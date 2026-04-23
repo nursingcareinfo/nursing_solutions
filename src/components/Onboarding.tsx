@@ -15,7 +15,7 @@ import {
   Plus,
   Clock
 } from 'lucide-react';
-import { extractStaffInfo, ExtractedStaffData, selectKarachiArea } from '../services/ocrService';
+import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
 import { supabase, Staff } from '../lib/supabase';
 import { cn, formatPhoneNumber } from '../lib/utils';
 import { KARACHI_TOWNS, STAFF_CATEGORIES } from '../constants';
@@ -86,21 +86,11 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     setEditForm({});
   };
 
-  const updateAreaFromAddress = async (address: string, fullName?: string, phone?: string) => {
+  const updateAreaFromAddress = (address: string) => {
     if (!address || address.trim() === '') return;
-
-    try {
-      const aiSelectedArea = await selectKarachiArea(address, fullName, phone);
-      if (aiSelectedArea && aiSelectedArea !== 'Unknown') {
-        setExtractedData(prev => prev ? { ...prev, area_town: aiSelectedArea } : null);
-      }
-    } catch (error) {
-      console.error('Error updating area from address:', error);
-      // Fallback to basic area detection if AI fails
-      const basicArea = getBasicAreaFromAddress(address);
-      if (basicArea) {
-        setExtractedData(prev => prev ? { ...prev, area_town: basicArea } : null);
-      }
+    const basicArea = getBasicAreaFromAddress(address);
+    if (basicArea) {
+      setExtractedData(prev => prev ? { ...prev, area_town: basicArea } : null);
     }
   };
 
@@ -129,11 +119,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
   useEffect(() => {
     const currentAddress = extractedData?.complete_address;
     if (currentAddress && currentAddress.length > 10) {
-      updateAreaFromAddress(
-        currentAddress,
-        extractedData?.full_name,
-        extractedData?.phone_primary
-      );
+      updateAreaFromAddress(currentAddress);
     }
   }, [extractedData?.complete_address]);
 
@@ -177,14 +163,12 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
 
       const data = await extractStaffInfo(imageData);
 
-      // Use AI to intelligently select Karachi area based on address
-      if (data.complete_address) {
-        const aiSelectedArea = await selectKarachiArea(
-          data.complete_address,
-          data.full_name,
-          data.phone_primary
-        );
-        data.area_town = aiSelectedArea;
+      // Fallback to basic area detection if AI didn't extract an area
+      if (!data.area_town && data.complete_address) {
+        const basicArea = getBasicAreaFromAddress(data.complete_address);
+        if (basicArea) {
+          data.area_town = basicArea;
+        }
       }
 
       setExtractedData(data);
