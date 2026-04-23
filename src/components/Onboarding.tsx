@@ -16,7 +16,7 @@ import {
   Clock
 } from 'lucide-react';
 import { extractStaffInfo, ExtractedStaffData } from '../services/ocrService';
-import { supabase } from '../lib/supabase';
+import { supabase, Staff } from '../lib/supabase';
 import { cn, formatPhoneNumber } from '../lib/utils';
 import { KARACHI_TOWNS, STAFF_CATEGORIES } from '../constants';
 import { motion } from 'motion/react';
@@ -36,6 +36,8 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [recentStaff, setRecentStaff] = useState<any[]>([]);
   const [isLoadingRecent, setIsLoadingRecent] = useState(true);
+  const [editingStaff, setEditingStaff] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<Staff>>({});
 
   const fetchRecentStaff = async () => {
     setIsLoadingRecent(true);
@@ -45,7 +47,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
-      
+
       if (error) throw error;
       setRecentStaff(data || []);
     } catch (err) {
@@ -53,6 +55,35 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     } finally {
       setIsLoadingRecent(false);
     }
+  };
+
+  const handleEditStaff = (staff: Staff) => {
+    setEditingStaff(staff.id);
+    setEditForm({ ...staff });
+  };
+
+  const handleSaveStaff = async () => {
+    if (!editingStaff) return;
+
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update(editForm)
+        .eq('id', editingStaff);
+
+      if (error) throw error;
+      setEditingStaff(null);
+      setEditForm({});
+      fetchRecentStaff(); // Refresh the table
+    } catch (err) {
+      console.error('Error updating staff:', err);
+      alert('Failed to update staff member');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingStaff(null);
+    setEditForm({});
   };
 
   useEffect(() => {
@@ -416,11 +447,19 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
 
       {/* Recently Added Staff Table */}
       <div className="bg-cat-mantle rounded-3xl border border-cat-surface0 shadow-sm overflow-hidden mb-12">
-        <div className="p-6 border-b border-cat-surface0 flex items-center gap-3 bg-cat-crust/50">
-          <div className="w-8 h-8 rounded-lg bg-cat-lavender/20 flex items-center justify-center text-cat-lavender">
-            <Clock className="w-4 h-4" />
+        <div className="p-6 border-b border-cat-surface0 flex items-center justify-between bg-cat-crust/50">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-cat-lavender/20 flex items-center justify-center text-cat-lavender">
+              <Clock className="w-4 h-4" />
+            </div>
+            <h3 className="font-bold text-lg text-cat-text">Staff Records (Editable)</h3>
           </div>
-          <h3 className="font-bold text-lg text-cat-text">Recently Registered Staff</h3>
+          <button
+            onClick={fetchRecentStaff}
+            className="px-4 py-2 bg-cat-surface0 rounded-xl text-cat-text text-sm font-medium hover:bg-cat-surface1 transition-colors"
+          >
+            Refresh
+          </button>
         </div>
         <div className="overflow-x-auto">
           {isLoadingRecent ? (
@@ -431,36 +470,140 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-cat-crust/30">
-                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Name & ID</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Category</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Area</th>
-                  <th className="px-6 py-4 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Created</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Name</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">CNIC</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Category</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Phone</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Area</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Status</th>
+                  <th className="px-4 py-3 text-[10px] font-bold text-cat-subtext0 uppercase tracking-widest">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cat-surface0">
                 {recentStaff.length > 0 ? (
                   recentStaff.map((staff) => (
                     <tr key={staff.id} className="hover:bg-cat-surface0/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-cat-text text-sm tracking-tight">{staff.full_name}</span>
-                          <span className="text-[10px] font-mono text-cat-overlay1 uppercase">{staff.cnic}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="px-3 py-1 bg-cat-surface0 rounded-lg text-[10px] font-bold text-cat-subtext1 uppercase tracking-tighter">
-                          {staff.category}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-cat-subtext0 font-medium">{staff.area_town}</td>
-                      <td className="px-6 py-4 text-[10px] text-cat-overlay1 font-mono uppercase">
-                        {new Date(staff.created_at).toLocaleDateString()}
-                      </td>
+                      {editingStaff === staff.id ? (
+                        <>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editForm.full_name || ''}
+                              onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                              placeholder="Full Name"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editForm.cnic || ''}
+                              onChange={(e) => setEditForm({...editForm, cnic: e.target.value})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                              placeholder="CNIC"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={editForm.category || ''}
+                              onChange={(e) => setEditForm({...editForm, category: e.target.value as Staff['category']})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                            >
+                              {STAFF_CATEGORIES.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <input
+                              type="text"
+                              value={editForm.phone_primary || ''}
+                              onChange={(e) => setEditForm({...editForm, phone_primary: formatPhoneNumber(e.target.value)})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                              placeholder="03XX-XXXXXXX"
+                            />
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={editForm.area_town || ''}
+                              onChange={(e) => setEditForm({...editForm, area_town: e.target.value})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                            >
+                              {KARACHI_TOWNS.map(town => (
+                                <option key={town} value={town}>{town}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <select
+                              value={editForm.status || ''}
+                              onChange={(e) => setEditForm({...editForm, status: e.target.value as Staff['status']})}
+                              className="w-full px-3 py-2 bg-cat-crust border border-cat-surface1 rounded-lg text-sm text-cat-text focus:ring-2 focus:ring-cat-blue outline-none"
+                            >
+                              <option value="Available">Available</option>
+                              <option value="On Duty">On Duty</option>
+                              <option value="On Leave">On Leave</option>
+                              <option value="Inactive">Inactive</option>
+                            </select>
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleSaveStaff}
+                                className="px-3 py-1 bg-cat-green text-cat-base rounded-lg text-xs font-bold hover:bg-cat-green/80 transition-colors"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="px-3 py-1 bg-cat-red text-cat-base rounded-lg text-xs font-bold hover:bg-cat-red/80 transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="px-4 py-3">
+                            <div className="text-sm font-medium text-cat-text">{staff.full_name}</div>
+                            <div className="text-[10px] text-cat-overlay1">{staff.father_husband_name}</div>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-mono text-cat-blue">{staff.cnic}</td>
+                          <td className="px-4 py-3">
+                            <span className="px-2 py-1 bg-cat-surface0 rounded text-xs font-bold text-cat-subtext1 uppercase">
+                              {staff.category}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-mono text-cat-blue">
+                            {formatPhoneNumber(staff.phone_primary || '')}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-cat-subtext0">{staff.area_town}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                              staff.status === 'Available' ? 'bg-cat-green/20 text-cat-green' :
+                              staff.status === 'On Duty' ? 'bg-cat-blue/20 text-cat-blue' :
+                              staff.status === 'On Leave' ? 'bg-cat-yellow/20 text-cat-yellow' :
+                              'bg-cat-red/20 text-cat-red'
+                            }`}>
+                              {staff.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => handleEditStaff(staff)}
+                              className="px-3 py-1 bg-cat-lavender text-cat-base rounded-lg text-xs font-bold hover:bg-cat-blue transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-cat-overlay0 italic text-sm">
+                    <td colSpan={7} className="px-6 py-12 text-center text-cat-overlay0 italic text-sm">
                       No staff records found.
                     </td>
                   </tr>
