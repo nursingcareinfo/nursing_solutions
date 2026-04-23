@@ -38,7 +38,8 @@ export const KARACHI_TOWNS = [
 ];
 
 export const STAFF_CATEGORIES = [
-  "R/N", "BSN", "Aid Nurse", "Midwife", "DPT", "ICU/Anes", "Doctor", "Attendant", "Babysitter"
+  "admin", "office boy", "baby sitter", "Nursing Aid", "Registered Nurse",
+  "ICU Tech", "Attendant", "Nursing Assistant", "Doctor", "Physiotherapist", "midwife"
 ];
 
 export const PAYMENT_METHODS = [
