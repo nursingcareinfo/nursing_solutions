@@ -229,6 +229,26 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             <p className="text-cat-subtext0">Capture or upload 2-3 images (CNIC, Form, Bill) together to extract profile information.</p>
           </div>
 
+          {/* OCR Tips - Show before upload */}
+          <div className="bg-cat-yellow/10 border border-cat-yellow/30 rounded-2xl p-5 text-sm space-y-2">
+            <div className="flex gap-2 font-bold text-cat-yellow">
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p>For best results, follow these tips:</p>
+                <ul className="list-disc list-inside mt-1 text-cat-text space-y-0.5">
+                  <li>Take photo in <strong>bright daylight</strong> or well-lit room</li>
+                  <li>Place CNIC on <strong>dark, flat surface</strong> (no patterns)</li>
+                  <li><strong>Avoid flash</strong> — causes glare on laminated surface</li>
+                  <li>Capture <strong>front AND back</strong> sides together</li>
+                  <li>Hold camera <strong>straight above</strong> (no skew)</li>
+                </ul>
+                <p className="mt-2 text-cat-text/70">
+                  <em>Note: AI extraction works ~70% on clear photos. You may need to correct fields manually.</em>
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-6">
             {/* Multi-file Dropzone */}
             <div 
@@ -332,7 +352,7 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
               <h3 className="text-xl font-bold tracking-tight">Review Extracted Data</h3>
               <p className="text-cat-base/80 text-sm font-medium">Please verify the details before saving to database.</p>
             </div>
-            <button 
+            <button
               onClick={() => setExtractedData(null)}
               className="w-10 h-10 flex items-center justify-center hover:bg-cat-base/10 rounded-xl transition-all"
             >
@@ -340,15 +360,59 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
             </button>
           </div>
 
-          {errorMessage && (
-            <div className="mx-8 mt-4 p-4 bg-cat-red/10 border border-cat-red/20 rounded-xl flex items-start gap-3 text-cat-red animate-in fade-in slide-in-from-top-2">
-              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-bold uppercase tracking-tight">Database Error</p>
-                <p className="font-medium">{errorMessage}</p>
+          {/* Confidence & Error Banner */}
+          {(extractedData as any)._errors?.length > 0 && (
+            <div className="mx-8 mt-4 p-4 bg-cat-red/10 border border-cat-red/20 rounded-xl animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-cat-red shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold text-cat-red uppercase tracking-tight mb-2">Fields Need Attention</p>
+                  <ul className="list-disc list-inside space-y-1 text-cat-red">
+                    {(extractedData as any)._errors?.map((err: string, i: number) => (
+                      <li key={i} className="text-cat-red/90">{err}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </div>
           )}
+
+          {(extractedData as any)._warnings?.length > 0 && (
+            <div className="mx-8 mt-3 p-3 bg-cat-yellow/10 border border-cat-yellow/20 rounded-xl text-sm animate-in fade-in">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-cat-yellow shrink-0 mt-px" />
+                <div className="text-cat-yellow/90">
+                  {(extractedData as any)._warnings?.map((w: string, i: number) => (
+                    <span key={i}>{w}{i < (extractedData as any)._warnings.length - 1 ? ' • ' : ''}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Confidence Meter */}
+          <div className="mx-8 mt-4">
+            <div className="flex items-center justify-between text-xs font-bold text-cat-overlay2 mb-1.5">
+              <span>EXTRACTION CONFIDENCE</span>
+              <span className={cn(
+                "text-sm",
+                (extractedData as any)._confidence >= 80 ? "text-cat-green" :
+                (extractedData as any)._confidence >= 50 ? "text-cat-yellow" : "text-cat-red"
+              )}>
+                {(extractedData as any)._confidence || 0}%
+              </span>
+            </div>
+            <div className="h-2 bg-cat-surface0 rounded-full overflow-hidden">
+              <div
+                className={cn(
+                  "h-full transition-all duration-500",
+                  (extractedData as any)._confidence >= 80 ? "bg-cat-green" :
+                  (extractedData as any)._confidence >= 50 ? "bg-cat-yellow" : "bg-cat-red"
+                )}
+                style={{ width: `${(extractedData as any)._confidence || 0}%` }}
+              />
+            </div>
+          </div>
 
           <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <DataField 
