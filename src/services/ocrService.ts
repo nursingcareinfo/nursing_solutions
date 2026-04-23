@@ -140,9 +140,9 @@ OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no extra text):
 If image is too blurry, leave unclear fields as empty string/null.`;
 
   try {
-    // Try Gemini 2.0 Flash via OpenRouter
+    // Use openai/gpt-3.5-turbo (works on OpenRouter free tier)
     const response = await openai.chat.completions.create({
-      model: 'google/gemini-2.0-flash-exp:free', // OpenRouter free tier
+      model: 'openai/gpt-3.5-turbo',
       messages: [
         {
           role: 'user',
