@@ -1,6 +1,10 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { OpenAI } from 'openai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// OpenRouter configuration
+const openai = new OpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENAI_API_KEY || '',
+});
 
 // ============================================
 // CNIC VALIDATION & UTILITIES
@@ -59,67 +63,64 @@ interface ExtractionResult extends ExtractedStaffData {
 // ============================================
 
 /**
- * Extracts staff data from CNIC/Form images using Gemini
- *
- * IMPORTANT: This is a helper for clear, well-lit photos only.
- * For best results:
- * - Take photos in good lighting (daylight or bright room)
- * - Place CNIC on dark, flat surface
- * - Avoid glare from flash or lamps
- * - Capture front AND back sides together
+ * Extracts staff data from CNIC/Form images using OpenRouter (Gemini models)
  */
 export const extractStaffInfo = async (
   images: { data: string; mimeType: string }[],
   onProgress?: (stage: string, attempt: number) => void
 ): Promise<ExtractedStaffData> => {
-  const modelId = "gemini-2.0-flash-exp";
-
+  
   if (images.length === 0) {
     throw new Error('No images provided. Please upload CNIC photos.');
   }
 
-  // Quick quality check
-  const qualityIssues = checkImageQuality(images[0].data);
-  if (qualityIssues.length > 0) {
-    console.warn('⚠️ Image quality issues detected:', qualityIssues);
-    // Continue anyway, but warn user
-  }
-
-  // Single attempt — Gemini is fast enough; retries won't fix fundamental issues
   onProgress?.('Reading document with AI...', 1);
 
-  const prompt = `You are extracting data from Pakistani CNIC/ID documents.
+  // Convert images to base64 properly (remove data:image/... prefix)
+  const imageParts = images.map(img => {
+    const base64 = img.data.includes(',') ? img.data.split(',')[1] : img.data;
+    return {
+      type: 'image_url' as const,
+      image_url: { url: `data:${img.mimeType || 'image/jpeg'};base64,${base64}` }
+    };
+  });
 
-IMPORTANT: These are REAL-WORLD photos — you may see:
-- Glare spots from laminated cards
+  const prompt = `You are a Pakistani CNIC/ID document data extraction expert.
+
+IMPORTANT: You are analyzing REAL-WORLD photos of:
+- Pakistani CNIC (Computerized National Identity Card)
+- Staff registration forms
+- Utility bills for address verification
+
+COMMON ISSUES IN PHOTOS:
+- Glare spots from laminated plastic cards
 - Urdu text mixed with English
-- Slightly blurry text
-- Cropped or angled photos
+- Blurry or angled text
+- Shadows and poor lighting
 
-Do your best to read text even with these issues. Focus on CLEAR text only. Skip fields you cannot confidently read.
+Extract ONLY what you can clearly read. Skip unclear fields.
 
-REQUIRED FIELD FORMATS:
-- CNIC: XXXXX-XXXXXXX-X (13 digits total, with dashes)
+PAKISTANI CNIC STRUCTURE:
+Front side: Name (English + Urdu), Father/Husband Name, Gender (M/F), Date of Birth (DD/MM/YYYY), CNIC Number, Issue/Expiry dates
+Back side: Present Address, Permanent Address
+
+DOCUMENT FIELD FORMATS:
+- CNIC: XXXXX-XXXXXXX-X (13 digits with dashes)
 - Phone: 03XX-XXXXXXX (11 digits starting with 03)
-- Name: Full name in English letters
-- Date of Birth: DD/MM/YYYY or DD-MM-YYYY
+- Date of Birth: Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
 - Category: One of: Nurse, Registered Nurse, Attendant, Doctor, Physiotherapist, Midwife, Baby Sitter, Nursing Assistant, ICU Tech, Admin, Office Boy, Nursing Aid
 
-PAKISTAN CNIC STRUCTURE:
-Front: Name, Father's Name, Gender (M/F), DOB, CNIC#, Issue/Expiry dates
-Back: Present Address, Permanent Address
-
-Urdu-English reference:
+Urdu Translations:
 - "نام" = Name
 - "والد/شوہر کا نام" = Father/Husband Name
 - "تاریخِ پیدائش" = Date of Birth
 - "پتّہ" = Address
 
-RETURN ONLY JSON (no markdown, no extra text):
+OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no extra text):
 {
-  "full_name": " Muhammad Ahmed Khan" (REQUIRED),
+  "full_name": "Muhammad Ahmed Khan" (REQUIRED),
   "father_husband_name": "Ahmed Khan" or null,
-  "cnic": "35202-1234567-1" or empty string,
+  "cnic": "35202-1234567-1" or "",
   "date_of_birth": "1990-05-15" or null,
   "gender": "Male" or "Female" or null,
   "religion": "Islam" or null,
@@ -128,7 +129,7 @@ RETURN ONLY JSON (no markdown, no extra text):
   "guarantor_contact": null,
   "complete_address": "House 12, Street 5, Gulshan-e-Iqbal, Karachi" (REQUIRED),
   "area_town": "Gulshan-e-Iqbal" or null,
-  "phone_primary": "0301-2345678" or empty,
+  "phone_primary": "0301-2345678" or "",
   "whatsapp_number": null or same as phone,
   "category": "Nurse" or other from list,
   "experience_years": 5 or null,
@@ -136,53 +137,27 @@ RETURN ONLY JSON (no markdown, no extra text):
   "shift_preference": "Morning" or null
 }
 
-If an image is too blurry or unreadable, leave the field empty string/null.`;
+If image is too blurry, leave unclear fields as empty string/null.`;
 
   try {
-    const imageParts = images.map(img => ({
-      inlineData: {
-        data: img.data.split(',')[1],
-        mimeType: img.mimeType || "image/jpeg"
-      }
-    }));
-
-    const response = await ai.models.generateContent({
-      model: modelId,
-      contents: {
-        parts: [
-          { text: prompt },
-          ...imageParts
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            full_name: { type: Type.STRING },
-            father_husband_name: { type: Type.STRING },
-            cnic: { type: Type.STRING },
-            date_of_birth: { type: Type.STRING },
-            gender: { type: Type.STRING },
-            religion: { type: Type.STRING },
-            marital_status: { type: Type.STRING },
-            guarantor_name: { type: Type.STRING },
-            guarantor_contact: { type: Type.STRING },
-            complete_address: { type: Type.STRING },
-            area_town: { type: Type.STRING },
-            phone_primary: { type: Type.STRING },
-            whatsapp_number: { type: Type.STRING },
-            category: { type: Type.STRING },
-            experience_years: { type: Type.NUMBER },
-            expected_salary: { type: Type.NUMBER },
-            shift_preference: { type: Type.STRING },
-          },
-          required: ["full_name", "cnic", "complete_address", "phone_primary"]
+    // Try Gemini 2.0 Flash via OpenRouter
+    const response = await openai.chat.completions.create({
+      model: 'google/gemini-2.0-flash-exp:free', // OpenRouter free tier
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            ...imageParts
+          ]
         }
-      }
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: 2000
     });
 
-    const text = response.text;
+    const text = response.choices?.[0]?.message?.content || '';
+    
     if (!text) {
       throw new Error("No response from AI — image may be too blurry or unclear");
     }
@@ -197,21 +172,24 @@ If an image is too blurry or unreadable, leave the field empty string/null.`;
       throw new Error('AI returned invalid format. Try uploading a clearer image.');
     }
 
-    // Validate fields
+    // Validate and clean fields
     const errors: string[] = [];
     const warnings: string[] = [];
 
     if (!data.full_name || data.full_name.trim().length < 2) {
       errors.push('Name not detected — please enter manually');
     }
+
     if (!data.cnic || !isValidCNIC(data.cnic)) {
       errors.push('CNIC not detected or invalid format — please enter 13-digit CNIC');
     } else {
       data.cnic = formatCNIC(data.cnic);
     }
+
     if (!data.complete_address || data.complete_address.trim().length < 5) {
       errors.push('Address not detected — please enter complete address');
     }
+
     if (!data.phone_primary || !/^03\d{2}-\d{7}$/.test(data.phone_primary)) {
       warnings.push('Phone number format incorrect — should be 03XX-XXXXXXX');
     }
@@ -240,26 +218,18 @@ If an image is too blurry or unreadable, leave the field empty string/null.`;
 
   } catch (error: any) {
     console.error('Extraction failed:', error);
-    throw new Error(
-      `Could not read document. ${error.message}\n\n` +
-      `Tips:\n` +
-      `• Ensure good lighting (no glare on plastic)\n` +
-      `• Place CNIC on dark flat surface\n` +
-      `• Capture front AND back sides\n` +
-      `• If still failing, use "Fill Manually" option.`
-    );
+    
+    let msg = `Could not read document.`;
+    if (error.message?.includes('quota') || error.message?.includes('429')) {
+      msg += ' API quota exceeded. Try again later.';
+    } else if (error.message?.includes('invalid') || error.message?.includes('API')) {
+      msg += ' API key issue. Contact admin.';
+    } else {
+      msg += `\n• Ensure good lighting (no glare on plastic)\n• Place CNIC on dark flat surface\n• Capture front AND back sides\n• If still failing, use "Fill Manually" option.`;
+    }
+    
+    throw new Error(msg);
   }
-};
-
-// ============================================
-// QUALITY CHECK
-// ============================================
-
-const checkImageQuality = (base64: string): string[] => {
-  const issues: string[] = [];
-  // Basic checks — we can't do full OpenCV analysis in browser without heavy libs
-  // Just return hints for user
-  return issues; // Empty means pass
 };
 
 // ============================================
