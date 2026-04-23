@@ -90,9 +90,14 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     if (!address || address.trim() === '') return;
 
     try {
+      console.log('Calling AI for address:', address);
       const aiSelectedArea = await selectKarachiArea(address, fullName, phone);
+      console.log('AI selected area:', aiSelectedArea);
       if (aiSelectedArea && aiSelectedArea !== 'Unknown') {
         setExtractedData(prev => prev ? { ...prev, area_town: aiSelectedArea } : null);
+        console.log('Updated area to:', aiSelectedArea);
+      } else {
+        console.log('AI returned unknown or invalid area');
       }
     } catch (error) {
       console.error('Error updating area from address:', error);
@@ -103,18 +108,15 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     fetchRecentStaff();
   }, []);
 
-  // Auto-update area when address changes
+  // Auto-update area when address changes (for both manual form and extracted data)
   useEffect(() => {
-    if (extractedData?.complete_address && extractedData.complete_address.length > 10) {
-      const timeoutId = setTimeout(() => {
-        updateAreaFromAddress(
-          extractedData.complete_address,
-          extractedData.full_name,
-          extractedData.phone_primary
-        );
-      }, 1000); // Debounce for 1 second
-
-      return () => clearTimeout(timeoutId);
+    const currentAddress = extractedData?.complete_address;
+    if (currentAddress && currentAddress.length > 10) {
+      updateAreaFromAddress(
+        currentAddress,
+        extractedData?.full_name,
+        extractedData?.phone_primary
+      );
     }
   }, [extractedData?.complete_address]);
 
