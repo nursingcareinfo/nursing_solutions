@@ -90,18 +90,35 @@ export default function StaffOnboarding({ onComplete }: { onComplete: () => void
     if (!address || address.trim() === '') return;
 
     try {
-      console.log('Calling AI for address:', address);
       const aiSelectedArea = await selectKarachiArea(address, fullName, phone);
-      console.log('AI selected area:', aiSelectedArea);
       if (aiSelectedArea && aiSelectedArea !== 'Unknown') {
         setExtractedData(prev => prev ? { ...prev, area_town: aiSelectedArea } : null);
-        console.log('Updated area to:', aiSelectedArea);
-      } else {
-        console.log('AI returned unknown or invalid area');
       }
     } catch (error) {
       console.error('Error updating area from address:', error);
+      // Fallback to basic area detection if AI fails
+      const basicArea = getBasicAreaFromAddress(address);
+      if (basicArea) {
+        setExtractedData(prev => prev ? { ...prev, area_town: basicArea } : null);
+      }
     }
+  };
+
+  const getBasicAreaFromAddress = (address: string): string | null => {
+    const lowerAddress = address.toLowerCase();
+    // Simple keyword matching as fallback
+    if (lowerAddress.includes('gulshan') || lowerAddress.includes('johartan')) return 'Gulshan-e-Iqbal';
+    if (lowerAddress.includes('korangi')) return 'Korangi';
+    if (lowerAddress.includes('orangi')) return 'Orangi';
+    if (lowerAddress.includes('malir')) return 'Malir';
+    if (lowerAddress.includes('nazimabad')) return 'Nazimabad';
+    if (lowerAddress.includes('dha') || lowerAddress.includes('defence')) return 'DHA';
+    if (lowerAddress.includes('pechs')) return 'PECHS';
+    if (lowerAddress.includes('clifton')) return 'Clifton';
+    if (lowerAddress.includes('saddar')) return 'Saddar';
+    if (lowerAddress.includes('lyari')) return 'Lyari';
+    if (lowerAddress.includes('garden')) return 'Garden';
+    return null;
   };
 
   useEffect(() => {
