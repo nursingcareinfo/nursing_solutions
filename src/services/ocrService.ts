@@ -1,5 +1,5 @@
 // OpenRouter configuration
-const OPENROUTER_API_KEY = process.env.OPENAI_API_KEY || '';
+const OPENROUTER_API_KEY = process.env.VITE_OPENAI_API_KEY || '';
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
 // Model for OCR - gpt-4o-mini supports vision, available on OpenRouter
