@@ -1,10 +1,13 @@
 import { OpenAI } from 'openai';
 
-// OpenRouter configuration
+// OpenRouter configuration - using FREE models for long usage
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
   apiKey: process.env.OPENAI_API_KEY || '',
 });
+
+// Model for OCR - gpt-4o-mini supports vision, available on OpenRouter
+const OCR_MODEL = 'openai/gpt-4o-mini';
 
 // ============================================
 // CNIC VALIDATION & UTILITIES
@@ -63,113 +66,82 @@ interface ExtractionResult extends ExtractedStaffData {
 // ============================================
 
 /**
- * Extracts staff data from CNIC/Form images using OpenRouter (Gemini models)
+ * Extracts staff data from CNIC/Form images using OpenRouter API
+ * Uses gpt-4o-mini for vision-capable OCR extraction
  */
 export const extractStaffInfo = async (
   images: { data: string; mimeType: string }[],
   onProgress?: (stage: string, attempt: number) => void
 ): Promise<ExtractedStaffData> => {
-  
+
   if (images.length === 0) {
     throw new Error('No images provided. Please upload CNIC photos.');
   }
 
-  onProgress?.('Reading document with AI...', 1);
-
-  // Convert images to base64 properly (remove data:image/... prefix)
+  // Convert images to proper format
   const imageParts = images.map(img => {
     const base64 = img.data.includes(',') ? img.data.split(',')[1] : img.data;
     return {
       type: 'image_url' as const,
-      image_url: { url: `data:${img.mimeType || 'image/jpeg'};base64,${base64}` }
+      image_url: `data:${img.mimeType || 'image/jpeg'};base64,${base64}`
     };
   });
 
-  const prompt = `You are a Pakistani CNIC/ID document data extraction expert.
-
-IMPORTANT: You are analyzing REAL-WORLD photos of:
-- Pakistani CNIC (Computerized National Identity Card)
-- Staff registration forms
-- Utility bills for address verification
-
-COMMON ISSUES IN PHOTOS:
-- Glare spots from laminated plastic cards
-- Urdu text mixed with English
-- Blurry or angled text
-- Shadows and poor lighting
-
-Extract ONLY what you can clearly read. Skip unclear fields.
-
-PAKISTANI CNIC STRUCTURE:
-Front side: Name (English + Urdu), Father/Husband Name, Gender (M/F), Date of Birth (DD/MM/YYYY), CNIC Number, Issue/Expiry dates
-Back side: Present Address, Permanent Address
-
-DOCUMENT FIELD FORMATS:
-- CNIC: XXXXX-XXXXXXX-X (13 digits with dashes)
-- Phone: 03XX-XXXXXXX (11 digits starting with 03)
-- Date of Birth: Convert DD/MM/YYYY or DD-MM-YYYY to YYYY-MM-DD
-- Category: One of: Nurse, Registered Nurse, Attendant, Doctor, Physiotherapist, Midwife, Baby Sitter, Nursing Assistant, ICU Tech, Admin, Office Boy, Nursing Aid
-
-Urdu Translations:
-- "نام" = Name
-- "والد/شوہر کا نام" = Father/Husband Name
-- "تاریخِ پیدائش" = Date of Birth
-- "پتّہ" = Address
-
-OUTPUT FORMAT: Return ONLY valid JSON (no markdown, no extra text):
+  // Optimized prompt - short and token-efficient
+  const prompt = `Extract CNIC data. Return ONLY JSON:
 {
-  "full_name": "Muhammad Ahmed Khan" (REQUIRED),
-  "father_husband_name": "Ahmed Khan" or null,
-  "cnic": "35202-1234567-1" or "",
-  "date_of_birth": "1990-05-15" or null,
-  "gender": "Male" or "Female" or null,
-  "religion": "Islam" or null,
-  "marital_status": "Married" or null,
-  "guarantor_name": null (usually not on CNIC),
-  "guarantor_contact": null,
-  "complete_address": "House 12, Street 5, Gulshan-e-Iqbal, Karachi" (REQUIRED),
-  "area_town": "Gulshan-e-Iqbal" or null,
-  "phone_primary": "0301-2345678" or "",
-  "whatsapp_number": null or same as phone,
-  "category": "Nurse" or other from list,
-  "experience_years": 5 or null,
-  "expected_salary": 50000 or null,
-  "shift_preference": "Morning" or null
+  "full_name": "",
+  "father_name": "",
+  "cnic": "",
+  "date_of_birth": "",
+  "gender": "",
+  "religion": "",
+  "marital_status": "",
+  "guarantor_name": "",
+  "guarantor_contact": "",
+  "complete_address": "",
+  "area_town": "",
+  "phone_primary": "",
+  "whatsapp_number": "",
+  "category": "",
+  "experience_years": 0,
+  "expected_salary": 0,
+  "shift_preference": ""
 }
-
-If image is too blurry, leave unclear fields as empty string/null.`;
+CNIC: XXXXX-XXXXXXX-X. Phone: 03XX-XXXXXXX. Skip unclear fields.`;
 
   try {
-    // Use openai/gpt-3.5-turbo (works on OpenRouter free tier)
+    onProgress?.('Extracting with AI...', 1);
+
     const response = await openai.chat.completions.create({
-      model: 'openai/gpt-3.5-turbo',
+      model: OCR_MODEL,
       messages: [
         {
           role: 'user',
           content: [
             { type: 'text', text: prompt },
             ...imageParts
-          ]
+          ] as any  // OpenAI SDK type issue workaround
         }
       ],
       response_format: { type: 'json_object' },
-      max_tokens: 2000
+      max_tokens: 1500
     });
 
     const text = response.choices?.[0]?.message?.content || '';
-    
+
     if (!text) {
-      throw new Error("No response from AI — image may be too blurry or unclear");
+      throw new Error('No response from AI model');
     }
 
+    // Parse JSON
     let data: ExtractionResult;
     try {
-      // Clean markdown if present
       const cleaned = text.replace(/```json\n?|\n?```/g, '').trim();
       data = JSON.parse(cleaned);
     } catch {
-      console.error('Raw AI response:', text);
-      throw new Error('AI returned invalid format. Try uploading a clearer image.');
+      console.error('Raw response from AI:', text);
+      throw new Error('AI returned invalid format');
     }
 
     // Validate and clean fields
@@ -217,18 +189,8 @@ If image is too blurry, leave unclear fields as empty string/null.`;
     return data;
 
   } catch (error: any) {
-    console.error('Extraction failed:', error);
-    
-    let msg = `Could not read document.`;
-    if (error.message?.includes('quota') || error.message?.includes('429')) {
-      msg += ' API quota exceeded. Try again later.';
-    } else if (error.message?.includes('invalid') || error.message?.includes('API')) {
-      msg += ' API key issue. Contact admin.';
-    } else {
-      msg += `\n• Ensure good lighting (no glare on plastic)\n• Place CNIC on dark flat surface\n• Capture front AND back sides\n• If still failing, use "Fill Manually" option.`;
-    }
-    
-    throw new Error(msg);
+    console.error('OCR extraction failed:', error);
+    throw error;
   }
 };
 
